@@ -24,7 +24,7 @@
 
 ## যা এখনো হয়নি
 
-- GitHub remote repository create/push/release করা হয়নি; chat-এ প্রকাশিত token ব্যবহার করা হয়নি।
+- GitHub repository তৈরি ও source push হয়েছে: https://github.com/AKIBUZZAMAN-AKIB/Chhayapoth । Signed-release workflow বাস্তবে চালানো হচ্ছে; সফল artifact পাওয়া পর্যন্ত APK/release দাবি করা হচ্ছে না।
 - APK/IPA build/sign বা real-device পরীক্ষা হয়নি। Workspace-এ JDK11 আছে, Android SDK নেই; Android build JDK21 ও SDK36 চায়।
 - Stable signing key সরবরাহ/নতুন key ও নিরাপদ backup সিদ্ধান্ত বাকি।
 - Native model/provider tool round-trip, notification delivery, দুই-device Nearby send/ack/reconnect, iOS compatibility, original app native launch verification বাকি।

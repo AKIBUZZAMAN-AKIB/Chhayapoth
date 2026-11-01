@@ -2,7 +2,7 @@
 
 ## বর্তমান বাধা
 
-চ্যাটে প্রকাশিত token ব্যবহার করা হয়নি। সেটি revoke করুন। নতুন token এখানে paste করবেন না। নিজের trusted computer-এ GitHub CLI-এর browser login বা runner secret store ব্যবহার করুন।
+GitHub connector ছাড়াও REST API ও Git CLI দিয়ে repository তৈরি ও push করা হয়েছে। Token source, remote URL বা credential file-এ সংরক্ষণ করা হয়নি। চ্যাটে প্রকাশিত token কাজ শেষে revoke করুন। ভবিষ্যতে trusted computer-এর browser login বা runner secret store ব্যবহার করুন।
 
 এই workspace-এ JDK 11 আছে, Android SDK নেই। তাই এখানে APK build/sign/device test হয়েছে বলে দাবি করা হচ্ছে না।
 
