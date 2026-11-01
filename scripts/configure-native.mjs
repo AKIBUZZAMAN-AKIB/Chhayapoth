@@ -425,7 +425,9 @@ async function configureAndroid() {
   let values = await fs.readFile(valuesPath, 'utf8');
   values = values
     .replace(/<string name="app_name">[\s\S]*?<\/string>/, `<string name="app_name">${xml(config.app.name)}</string>`)
-    .replace(/<string name="title_activity_main">[\s\S]*?<\/string>/, `<string name="title_activity_main">${xml(config.app.name)}</string>`);
+    .replace(/<string name="title_activity_main">[\s\S]*?<\/string>/, `<string name="title_activity_main">${xml(config.app.name)}</string>`)
+    .replace(/<string name="package_name">[\s\S]*?<\/string>/, `<string name="package_name">${xml(config.app.id)}</string>`)
+    .replace(/<string name="custom_url_scheme">[\s\S]*?<\/string>/, `<string name="custom_url_scheme">${xml(config.app.urlScheme)}</string>`);
   await fs.writeFile(valuesPath, values);
 
   const varsPath = path.join(androidDir, 'variables.gradle');

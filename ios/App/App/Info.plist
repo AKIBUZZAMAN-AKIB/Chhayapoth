@@ -69,7 +69,7 @@
 	<array>
 		<dict>
 			<key>CFBundleURLName</key><string>dev.chhayapoth.app</string>
-			<key>CFBundleURLSchemes</key><array><string>nativekit</string></array>
+			<key>CFBundleURLSchemes</key><array><string>chhayapoth</string></array>
 		</dict>
 	</array>
 	<key>UIApplicationSceneManifest</key>

@@ -1125,3 +1125,7 @@ a.btn {
     grid-template-columns: minmax(0, 1fr);
   }
 }
+/* The native activity publishes safe-area values for edge-to-edge layouts. */
+main{padding-top:calc(28px + var(--safe-area-inset-top,env(safe-area-inset-top,0px)))}
+.sidebar{padding-top:calc(37px + var(--safe-area-inset-top,env(safe-area-inset-top,0px)))}
+@media(max-width:760px){main{padding-top:calc(20px + var(--safe-area-inset-top,env(safe-area-inset-top,0px)))}.mobile-nav{padding-bottom:max(12px,var(--safe-area-inset-bottom,env(safe-area-inset-bottom,0px)))}}

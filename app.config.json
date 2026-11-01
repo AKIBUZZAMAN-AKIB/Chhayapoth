@@ -8,7 +8,7 @@
     "buildNumber": "1",
     "description": "Bangla-first personal workspace for learning and everyday organisation",
     "defaultLanguage": "bn",
-    "urlScheme": "nativekit"
+    "urlScheme": "chhayapoth"
   },
   "web": {
     "mode": "static",
