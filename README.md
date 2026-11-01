@@ -45,7 +45,7 @@ npm run native:sync
 npm run android:debug
 ```
 
-The source package omits large prebuilt vendor `.so` / `.a` files. `native-binaries.lock.json` pins their source commit, size and SHA-256; the restore script refuses mismatches. The original library files are present in this working workspace and were verified. Rebuilding those libraries from Rust is a separate upstream toolchain task.
+The source package omits large prebuilt vendor `.so` / `.a` files. `native-binaries.lock.json` pins their source commit, size and SHA-256; the restore script refuses mismatches. The original library files were verified against the manifest; large local iOS copies may be pruned and can be restored with the same command. Rebuilding those libraries from Rust is a separate upstream toolchain task.
 
 Browser E2E (install Playwright and its Chromium runtime in your own environment):
 
@@ -68,3 +68,9 @@ Read [release instructions](docs/chhayapoth/RELEASE.bn.md), [implementation stat
 This is a first functional alpha, not the entire research proposal. There is no clinical validation, broad curriculum tutor, public store backend, online messaging service, cloud sync, fully offline language model, or field-tested disaster mesh. Core records are local and are not encrypted as a health-data vault. A domain backup does not include mini-app profile data or native-agent transcripts. Back up those through their own facilities.
 
 The old diagnostic UI is retained at `testlab.html`. The previous UI-only design is in `prototype/`. Original framework documentation is in `docs/NATIVEKIT-UPSTREAM-README.md`.
+
+## Published test build
+
+[Test-signed alpha release](https://github.com/AKIBUZZAMAN-AKIB/Chhayapoth/releases/tag/test-0.1.0.1) · [successful build](https://github.com/AKIBUZZAMAN-AKIB/Chhayapoth/actions/runs/41341127941).
+
+The APK/AAB passed pipeline signing verification and downloaded SHA-256 checks. The key is throwaway: no production identity or future update continuity is promised. Back up local records before changing builds. No real-device validation is claimed.

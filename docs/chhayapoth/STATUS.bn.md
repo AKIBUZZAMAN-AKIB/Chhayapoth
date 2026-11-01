@@ -24,8 +24,8 @@
 
 ## যা এখনো হয়নি
 
-- GitHub repository তৈরি ও source push হয়েছে: https://github.com/AKIBUZZAMAN-AKIB/Chhayapoth । Signed-release workflow বাস্তবে চালানো হচ্ছে; সফল artifact পাওয়া পর্যন্ত APK/release দাবি করা হচ্ছে না।
-- APK/IPA build/sign বা real-device পরীক্ষা হয়নি। Workspace-এ JDK11 আছে, Android SDK নেই; Android build JDK21 ও SDK36 চায়।
+- GitHub repository তৈরি ও source push হয়েছে: https://github.com/AKIBUZZAMAN-AKIB/Chhayapoth ।
+- GitHub Actions-এ Android release APK/AAB build এবং apksigner verification সফল হয়েছে। এটি throwaway test key দিয়ে signed alpha। IPA build ও real-device পরীক্ষা হয়নি। Local workspace-এ Android SDK নেই; remote runner JDK21 ও SDK36 ব্যবহার করেছে।
 - Stable signing key সরবরাহ/নতুন key ও নিরাপদ backup সিদ্ধান্ত বাকি।
 - Native model/provider tool round-trip, notification delivery, দুই-device Nearby send/ack/reconnect, iOS compatibility, original app native launch verification বাকি।
 - Open-Meteo live endpoint availability E2E-তে দাবি করা হয়নি; test response mocked।
@@ -35,3 +35,12 @@
 ## নিরাপদ পরবর্তী ধাপ
 
 প্রকাশিত GitHub token revoke করুন। Trusted machine-এর `gh auth login` দিয়ে `scripts/publish-chhayapoth.sh` চালানো যায়। Stable signing secrets সেট করে tag push দিলে GitHub Actions build/sign/verify/release করতে প্রস্তুত; workflow run না দেখা পর্যন্ত release সফল বলা যাবে না।
+
+## প্রকাশিত test release
+
+- Release: https://github.com/AKIBUZZAMAN-AKIB/Chhayapoth/releases/tag/test-0.1.0.1
+- সফল build: https://github.com/AKIBUZZAMAN-AKIB/Chhayapoth/actions/runs/41341127941
+- Build commit: `88fb3400f73da885afdcd9141d1fa5b7d4c184b0`
+- APK SHA-256: `70a5cf677124c4f5cbca4f41482b8e6f274eb83c27d6c7ff3326f21a8731a1a0`
+- APK এবং AAB-এর downloaded checksums verify করা হয়েছে; release-এ SIGNATURE.txt ও SHA256SUMS.txt আছে।
+- Test key স্থায়ী production identity নয়। পরবর্তী build update হিসেবে install নাও হতে পারে; uninstall করার আগে local data backup নিন।
