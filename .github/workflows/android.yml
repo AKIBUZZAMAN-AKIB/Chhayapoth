@@ -1,0 +1,109 @@
+name: Chhayapoth Android signed release
+on:
+  push:
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      signing:
+        description: 'stable requires four signing secrets; test uses a throwaway key (no update continuity)'
+        required: true
+        default: stable
+        type: choice
+        options: [stable, test]
+permissions:
+  contents: write
+concurrency:
+  group: chhayapoth-android-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: android-actions/setup-android@v3
+      - name: Install dependencies and restore verified native libraries
+        run: |
+          npm ci
+          npm run native:restore
+      - name: Validate source
+        run: npm run check
+      - name: Native synchronization
+        run: |
+          chmod +x android/gradlew
+          npm run ci:android
+      - name: Build debug APK on pull requests
+        if: github.event_name == 'pull_request'
+        working-directory: android
+        run: ./gradlew --no-daemon --max-workers=2 assembleDebug
+      - name: Configure release signing
+        if: github.event_name != 'pull_request'
+        env:
+          MODE: ${{ inputs.signing || 'stable' }}
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          key="$RUNNER_TEMP/chhayapoth-release.jks"
+          if [[ "$MODE" == "test" ]]; then
+            password="$(openssl rand -hex 32)"
+            echo "::add-mask::$password"
+            ANDROID_KEYSTORE_PASSWORD="$password"
+            ANDROID_KEY_PASSWORD="$password"
+            ANDROID_KEY_ALIAS="chhayapoth-test"
+            keytool -genkeypair -keystore "$key" -storetype PKCS12 -keyalg RSA -keysize 3072 -validity 365 -alias "$ANDROID_KEY_ALIAS" -storepass "$password" -keypass "$password" -dname "CN=Chhayapoth Test, O=Chhayapoth, C=BD"
+            echo 'TEST SIGNING: throwaway key; not update-continuous.' >> "$GITHUB_STEP_SUMMARY"
+          else
+            test -n "$ANDROID_KEYSTORE_BASE64" || { echo 'Missing stable signing key. Configure all four ANDROID_KEYSTORE_* secrets.' >&2; exit 1; }
+            test -n "$ANDROID_KEYSTORE_PASSWORD"
+            test -n "$ANDROID_KEY_ALIAS"
+            test -n "$ANDROID_KEY_PASSWORD"
+            printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$key"
+          fi
+          chmod 600 "$key"
+          {
+            echo "ANDROID_KEYSTORE_PATH=$key"
+            echo "ANDROID_KEYSTORE_PASSWORD=$ANDROID_KEYSTORE_PASSWORD"
+            echo "ANDROID_KEY_ALIAS=$ANDROID_KEY_ALIAS"
+            echo "ANDROID_KEY_PASSWORD=$ANDROID_KEY_PASSWORD"
+          } >> "$GITHUB_ENV"
+      - name: Build release APK and bundle
+        if: github.event_name != 'pull_request'
+        working-directory: android
+        run: ./gradlew --no-daemon --max-workers=2 assembleRelease bundleRelease
+      - name: Verify signing and collect release artifacts
+        if: github.event_name != 'pull_request'
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p release-artifacts
+          cp android/app/build/outputs/apk/release/app-release.apk release-artifacts/chhayapoth.apk
+          cp android/app/build/outputs/bundle/release/app-release.aab release-artifacts/chhayapoth.aab
+          signer="$(find "$ANDROID_HOME/build-tools" -name apksigner -type f | sort -V | tail -1)"
+          test -n "$signer"
+          "$signer" verify --verbose --print-certs release-artifacts/chhayapoth.apk | tee release-artifacts/SIGNATURE.txt
+          (cd release-artifacts && sha256sum chhayapoth.apk chhayapoth.aab > SHA256SUMS.txt)
+      - uses: actions/upload-artifact@v4
+        if: github.event_name != 'pull_request'
+        with:
+          name: chhayapoth-android-${{ github.sha }}
+          path: release-artifacts/
+          if-no-files-found: error
+      - name: Publish stable signed prerelease for version tag
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" release-artifacts/* --verify-tag --prerelease --title "Chhayapoth $GITHUB_REF_NAME" --notes "Alpha release. Verify SHA256SUMS.txt and SIGNATURE.txt. Core local utilities are implemented; native model, notification and Nearby reliability need device testing. Not a medical or emergency-response service."

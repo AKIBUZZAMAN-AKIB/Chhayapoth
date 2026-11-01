@@ -1,0 +1,39 @@
+node_modules/
+.nativekit/
+web-dist/
+.DS_Store
+*.log
+.env
+.env.*
+!.env.example
+android/.gradle/
+android/local.properties
+android/app/build/
+android/nativekit-signing.properties
+ios/App/DerivedData/
+ios/App/build/
+*.xcarchive
+*.ipa
+*.p12
+*.mobileprovision
+*.jks
+*.keystore
+
+.nativekit-backups/
+
+# FFI tooling: the SDK checkout + cargo target dir those scripts create,
+# and the bytecode the python checkers leave behind
+.ffi-cache/
+__pycache__/
+
+# Generated browser bridge (rebuild using npm run build:bridge)
+www/nativekit.js
+www/chhayapoth/domain.js
+
+# Large prebuilt vendor libraries: restored with a pinned SHA256 manifest.
+plugins/native-agent/android/src/main/jniLibs/*/*.so
+plugins/native-agent/ios/Frameworks/**/*.a
+**/dist/
+**/node_modules/
+*.apk
+*.aab

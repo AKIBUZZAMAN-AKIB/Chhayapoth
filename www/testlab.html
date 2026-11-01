@@ -1,0 +1,488 @@
+<!doctype html>
+<html lang="bn">
+<head>
+<script src="./nativekit.js" data-nativekit-bridge></script>
+  <meta charset="utf-8">
+  <!-- One keyboard mechanism only: Capacitor SystemBars (native IME padding, API 35+)
+       + adjustResize (≤14). Do NOT add interactive-widget=resizes-content here —
+       Chrome would then shrink the viewport a 2nd time, leaving a keyboard-sized gap. -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0f172a">
+  <title>NativeKit Demo</title>
+  <link rel="stylesheet" href="./styles.css">
+  <link rel="stylesheet" href="./app-browser.css">
+  <!-- scripts/prepare-web.mjs injects nativekit.js before this application script. -->
+  <script defer src="./app.js"></script>
+  <script defer src="./app-browser-manager.js"></script>
+</head>
+<body>
+  <header class="hero">
+    <div class="badge">CAPACITOR 8 · LOCAL BUNDLE</div>
+    <h1>NativeKit Universal Shell</h1>
+    <p>একটি replaceable web UI, একটি স্থায়ী <code>window.NativeKit</code> native façade।</p>
+    <div id="platform" class="platform">Bridge loading…</div>
+    <nav class="hero-chips" aria-label="দ্রুত navigation">
+      <a href="#agent-lab">🧠 AI Workspace</a>
+      <a href="#widget-lab">🧩 Widgets</a>
+      <a href="#app-browser-manager">📦 App Browser</a>
+      <a href="#blend-test">🎨 Appearance</a>
+      <a href="#full-api-lab">🔌 Native API</a>
+      <a href="#host-log">📜 Live log</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="panel status-panel">
+      <div>
+        <p class="eyebrow">RUNTIME</p>
+        <h2>ক্ষমতা ও কনফিগারেশন</h2>
+      </div>
+      <button id="refresh" class="secondary">Refresh</button>
+      <pre id="status" aria-live="polite">Waiting for NativeKit…</pre>
+    </section>
+
+    <section class="grid" aria-label="Native feature tests">
+      <article class="card">
+        <span class="icon">◎</span><h3>Permissions</h3>
+        <p>OS permission state দেখুন; prompt শুধু feature ব্যবহারের সময় দিন।</p>
+        <button data-action="permissions">Check status</button>
+      </article>
+      <article class="card">
+        <span class="icon">⌖</span><h3>Location</h3>
+        <p>Foreground precise position পড়ুন। Background GPS config-এ আলাদা gated।</p>
+        <button data-action="location">Get location</button>
+      </article>
+      <article class="card">
+        <span class="icon">▣</span><h3>Camera</h3>
+        <p>Camera/gallery chooser native prompt খুলুন।</p>
+        <button data-action="camera">Choose photo</button>
+      </article>
+      <article class="card">
+        <span class="icon">◉</span><h3>Haptics</h3>
+        <p>বর্তমানে খোলা app-এ native impact feedback দিন।</p>
+        <button data-action="haptic">Vibrate</button>
+      </article>
+      <article class="card">
+        <span class="icon">◷</span><h3>Reminder</h3>
+        <p>অনুমতি নিয়ে ৫ সেকেন্ড পরে local notification schedule করুন।</p>
+        <button data-action="notification">Schedule +5s</button>
+      </article>
+      <article class="card">
+        <span class="icon">↻</span><h3>Background runner</h3>
+        <p>Headless runner test event dispatch করুন; এটি exact timer নয়।</p>
+        <button data-action="background">Run test</button>
+      </article>
+      <article class="card">
+        <span class="icon">▤</span><h3>Preferences</h3>
+        <p>একটি JSON counter platform storage-এ persist করুন।</p>
+        <button data-action="storage">Increment</button>
+      </article>
+      <article class="card warning">
+        <span class="icon">◒</span><h3>Advanced alarm</h3>
+        <p>Exact/full-screen/AlarmKit capability দেখুন; default config-এ policy safety-এর জন্য off।</p>
+        <button data-action="alarms">Check alarm support</button>
+      </article>
+    </section>
+
+    <section class="panel" id="full-api-lab">
+      <div>
+        <p class="eyebrow">FULL API LAB</p>
+        <h2>সব native plugin — এক-ট্যাপ টেস্ট</h2>
+        <p style="color:var(--muted);font-size:.85rem;margin-top:8px">প্রতিটি বাটন সরাসরি native API ডাকে; ফলাফল নিচের Host Event Log-এ আসে। Permission লাগলে OS prompt আসবে, grant করলেই সেই call নিজে complete হয় — আবার চাপতে হবে না।</p>
+      </div>
+      <div class="grid" style="margin-top:16px" aria-label="Full native API tests">
+        <article class="card"><span class="icon">▣</span><h3>Exact alarm</h3><p>১৫ সেকুন্ড পর native alarm; প্রথমবার exact-access settings চাইলে অনুমতি দিন।</p><button data-action="alarmset">Schedule +15s</button></article>
+        <article class="card"><span class="icon">⛁</span><h3>SQLite</h3><p>Native DB খুলে table create → insert → query চালান।</p><button data-action="sqlite">Run DB test</button></article>
+        <article class="card"><span class="icon">⛨</span><h3>Secure storage</h3><p>Keystore/Keychain-backed store-এ token লিখে আবার পড়ুন।</p><button data-action="secure">Write + read</button></article>
+        <article class="card"><span class="icon">▤</span><h3>Filesystem</h3><p>App-private storage-এ ফাইল লিখে stat দিয়ে verify করুন — permission লাগে না।</p><button data-action="fs">Write + read</button></article>
+        <article class="card"><span class="icon">⇪</span><h3>Download</h3><p>Native file transfer, progress log-সহ ছোট ফাইল ডাউনলোড।</p><button data-action="download">Download file</button></article>
+        <article class="card"><span class="icon">≣</span><h3>SSE stream</h3><p>Native chunked stream পড়ুন—browser CORS ছাড়া।</p><button data-action="stream">Start stream</button></article>
+        <article class="card"><span class="icon">◈</span><h3>Share</h3><p>Native share sheet খুলুন।</p><button data-action="share">Share text</button></article>
+        <article class="card"><span class="icon">☷</span><h3>Network status</h3><p>সংযোগের ধরন ও state পড়ুন।</p><button data-action="network">Get status</button></article>
+        <article class="card"><span class="icon">◍</span><h3>Push status</h3><p>Permission state দেখুন (Firebase এখনো ইচ্ছাকৃতভাবে নেই)।</p><button data-action="pushstatus">Check push</button></article>
+        <article class="card"><span class="icon">▧</span><h3>Background GPS</h3><p>Foreground-service ট্র্যাকিং; settings-এ 'Allow all the time' দিন।</p><div class="input-row"><button data-action="bgstart">Start</button><button data-action="bgstop" class="secondary">Stop</button></div></article>
+        <article class="card"><span class="icon">⌘</span><h3>In-app browser</h3><p>Capgo webview browser খুলুন (example.com)।</p><button data-action="browser">Open</button></article>
+        <article class="card"><span class="icon">📡</span><h3>Nearby P2P</h3><p>সম্পূর্ণ অফলাইন ডিভাইস-টু-ডিভাইস চ্যাট ও ফাইল ট্রান্সফার (Bluetooth/Wi‑Fi Direct)।</p><button id="bt-nearby" type="button">📡 P2P Lab খোলো</button></article>
+        <article class="card"><span class="icon">⌨</span><h3>Keyboard test</h3><p>ট্যাপ করলে keyboard আসবে — blink/layout যাচাই করুন।</p><input id="kb-test" placeholder="এখানে লিখে দেখুন…" autocomplete="off"></article>
+      </div>
+    </section>
+
+    <section class="panel widget-panel" id="widget-lab">
+      <div>
+        <p class="eyebrow">WIDGETS</p>
+        <h2>Home-screen + floating widget</h2>
+        <p style="color:var(--muted);font-size:.85rem;margin-top:8px">
+          Home-screen widget native <code>RemoteViews</code>-এ render হয় (Android) ও WidgetKit-এ (iOS);
+          আপনি web থেকে data push করেন। Floating widget screen-এর উপরে ভেসে থাকে এবং
+          <code>widgets/floating.html</code> নামে একটি HTML পেজ WebView-এ চালায় (শুধু Android 8.0+)।
+        </p>
+      </div>
+      <div class="grid" style="margin-top:16px" aria-label="Widget tests">
+        <article class="card"><span class="icon">▦</span><h3>Home-screen widget</h3><p>Stored config-এ counter রেখে সব live instance update এবং optional pin request করুন। রঙ, text-size, align ও progress-bar সব web-API থেকে; 'Free design' আপনার নিজের layout resource ব্যবহার করে।</p><div class="input-row"><button data-action="widgetset">Set counter</button><button data-action="widgetinc" class="secondary">Increment</button></div><div class="input-row"><button data-action="widgetstyle" class="ghost">Rich style</button><button data-action="widgethero" class="ghost">Free design</button></div><div class="input-row"><button data-action="widgethtml" class="ghost">HTML widget</button><button data-action="widgetreload" class="ghost">Reload</button></div><div class="input-row"><button data-action="widgetpin" class="ghost">Pin request</button></div></article>
+        <article class="card warning"><span class="icon">◉</span><h3>Floating widget</h3><p>Overlay permission চেক/ask করুন, তারপর bubble দেখান (web-rendered panel) — position, fullscreen, chrome ও inline HTML সব www-র API থেকে।</p><div class="input-row"><button data-action="floatcheck">Check permit</button><button data-action="floatrequest" class="secondary">Request permit</button></div><div class="input-row"><button data-action="floatshow">Show bubble</button><button data-action="floatsend" class="secondary">Push +1</button></div><div class="input-row"><button data-action="floatpos" class="ghost">Bottom-right</button><button data-action="floatfull" class="ghost">Fullscreen</button></div><div class="input-row"><button data-action="floatchrome" class="ghost">Pure HTML</button><button data-action="floatupdate" class="ghost">Resize/Center</button></div><div class="input-row"><button data-action="floatjs" class="ghost">Inject JS</button><button data-action="floathide" class="ghost">Hide</button></div></article>
+        <article class="card"><span class="icon">◫</span><h3>Widget events</h3><p>নিচের log-এ widget tap ও floating message স্ট্রিম আসে।</p><button data-action="widgetlisten" class="secondary">Listen once</button></article>
+      </div>
+    </section>
+
+    <section class="panel agent-launch" aria-labelledby="agent-launch-title">
+      <div>
+        <p class="eyebrow">PRIVATE AI WORKSPACE</p>
+        <h2 id="agent-launch-title">AI Agent-এর জন্য আলাদা কাজের পেজ</h2>
+        <p>চ্যাট, Auto Router, approvals, cron, skill, memory, persona file ও MCP এখন একটি focused full-screen workspace-এ।</p>
+      </div>
+      <a class="agent-open-link" href="./agent.html">AI Workspace খুলুন <span>চ্যাট শুরু করুন →</span></a>
+    </section>
+
+    <details class="agent-lab-advanced">
+      <summary>Developer diagnostics · সম্পূর্ণ native Agent API Lab</summary>
+      <section class="panel agent-panel" id="agent-lab">
+      <div>
+        <p class="eyebrow">ON-DEVICE AI AGENT</p>
+        <h2>Rust agent engine — সব API টেস্ট</h2>
+        <p style="color:var(--muted);font-size:.85rem;margin-top:8px">
+          পুরো agent (LLM turn, tool call, cron, skill, MCP, memory) ফোনের ভেতরে
+          native Rust-এ চলে — শুধু LLM provider-এর সাথে network কথা হয়।
+          <strong>ক্রম মেনে চলুন:</strong> ① Availability → ② Initialize → ③ দরকার হলে provider key →
+          ④ Send message। WebLLM local; AI Horde anonymous key-এ সর্বনিম্ন priority।
+        </p>
+        <p class="hint" id="agent-status" data-tone="muted">প্রস্তুত হচ্ছে…</p>
+      </div>
+
+      <div class="input-row" style="margin-top:14px;flex-wrap:wrap;gap:8px">
+        <select id="agent-provider" aria-label="এই turn-এর provider" style="flex:1 1 160px">
+          <option value="auto">Free Router · Kilo আগে, verified free only</option>
+          <option value="anthropic">Anthropic</option><option value="openai">OpenAI</option>
+          <option value="gemini">Google Gemini</option><option value="openrouter">OpenRouter</option>
+          <option value="ovhcloud">OVHcloud</option><option value="aihorde" title="No tool calls or SSE; buffered response">AI Horde (buffered, no tools)</option>
+          <option value="llm7">LLM7</option><option value="opencode_zen">OpenCode Zen</option>
+          <option value="kilo">Kilo Code</option><option value="pollinations">Pollinations</option>
+          <option value="webllm">WebLLM (local WebGPU)</option>
+        </select>
+        <input id="agent-model" list="agent-model-list" placeholder="এই turn-এর model override (ঐচ্ছিক)" autocomplete="off" style="flex:1 1 220px">
+        <datalist id="agent-model-list"></datalist>
+        <select id="agent-auth-provider" aria-label="যে provider-এর key সংরক্ষণ করবেন" style="flex:1 1 160px">
+          <option value="anthropic">Anthropic key</option><option value="openai">OpenAI key</option>
+          <option value="gemini">Gemini key</option><option value="openrouter">OpenRouter key</option>
+          <option value="ovhcloud">OVHcloud key</option><option value="aihorde">AI Horde key (optional; anonymous lowest priority)</option>
+          <option value="llm7">LLM7 key</option><option value="opencode_zen">OpenCode Zen key</option>
+          <option value="kilo">Kilo key</option><option value="pollinations">Pollinations key</option>
+        </select>
+        <input id="agent-key" type="password" placeholder="selected provider-এর API key (runtime config-এ নয়)" autocomplete="off" style="flex:2 1 240px">
+      </div>
+      <div class="input-row" style="margin-top:8px;flex-wrap:wrap;gap:8px">
+        <input id="agent-system" placeholder="system prompt (optional)" autocomplete="off" style="flex:1 1 220px">
+        <input id="agent-prompt" placeholder="prompt — যা জিজ্ঞেস করবেন" value="Say hello in Bangla, one short sentence." autocomplete="off" style="flex:2 1 280px">
+      </div>
+      <article class="card" style="margin-top:12px">
+        <span class="icon">⇄</span><h3>Provider, model & auto-routing</h3>
+        <p>Model তালিকা live catalog থেকে আনুন। নিচের default model ও base URL provider configuration; উপরের model field শুধু এই turn-এর override। Save করলে model-level tool/protocol/auth/stream capability runtime settings-এ থাকে; API key আলাদা auth store-এ যায়। Free Router mode-এ Kilo Auto Free আগে এবং OpenRouter Free Models Router পরে; paid বা unknown-price model native engine reject করে। নির্দিষ্ট paid provider/model ব্যবহার করতে উপরের provider স্পষ্ট করে বাছুন। Free-tier model-এর prompt logging/training ঝুঁকি catalog-এ থাকলে এখানে দেখানো হবে।</p>
+        <div class="input-row">
+          <label class="hint" for="agent-catalog-provider">Catalog / default model provider</label>
+          <select id="agent-catalog-provider" aria-label="Model catalog provider">
+            <option value="anthropic">Anthropic</option><option value="openai">OpenAI</option>
+            <option value="gemini">Google Gemini</option><option value="openrouter">OpenRouter</option>
+            <option value="ovhcloud">OVHcloud</option><option value="aihorde" title="OpenAI shim has no tools or SSE; responses are buffered">AI Horde (buffered, no tools)</option>
+            <option value="llm7">LLM7</option><option value="opencode_zen">OpenCode Zen</option>
+            <option value="kilo">Kilo Code</option><option value="pollinations">Pollinations</option>
+            <option value="webllm">WebLLM</option>
+          </select>
+          <button data-agent-action="agentmodels" class="secondary">Refresh selected provider models</button>
+          <button data-agent-action="agentsaveproviders">Save provider / routing settings</button>
+        </div>
+        <div class="input-row">
+          <label class="hint" for="agent-provider-default-model">Provider default model</label>
+          <input id="agent-provider-default-model" list="agent-model-list" placeholder="leave blank to use the built-in default" autocomplete="off" style="flex:1 1 260px">
+          <label class="hint" for="agent-provider-base-url">Base URL override</label>
+          <input id="agent-provider-base-url" type="url" placeholder="https://… (optional API root; no credentials)" autocomplete="off" style="flex:2 1 300px">
+        </div>
+        <div class="input-row">
+          <label class="hint" for="agent-model-protocol">Wire protocol</label>
+          <select id="agent-model-protocol" aria-label="Model wire protocol">
+            <option value="">Catalog/provider default</option>
+            <option value="anthropic_messages">Anthropic Messages</option>
+            <option value="openai_chat_completions">OpenAI Chat Completions</option>
+            <option value="openai_responses">OpenAI Responses</option>
+            <option value="gemini_generate_content">Gemini generateContent</option>
+            <option value="webllm_chat_completions">WebLLM local Chat Completions</option>
+          </select>
+          <select id="agent-model-tools" aria-label="Model tool-call capability">
+            <option value="unknown">Tool capability: unknown (safe)</option>
+            <option value="true">Verified: model supports tools</option>
+            <option value="false">Verified: model does not support tools</option>
+          </select>
+        </div>
+        <p class="hint" id="agent-model-capability-summary">Catalog model metadata এখানে দেখানো হবে।</p>
+        <div class="input-row">
+          <input id="agent-provider-order" placeholder="Free Router order: kilo,openrouter" readonly autocomplete="off" style="flex:2 1 320px">
+          <label class="chk"><input id="agent-failover" type="checkbox" checked>transient error-এ failover</label>
+          <label class="hint" for="agent-max-fallbacks">Max fallbacks</label>
+          <input id="agent-max-fallbacks" type="number" min="0" max="10" value="3" style="width:76px">
+        </div>
+        <p class="hint">Tool call থাকবে এমন task কেবল model-level-এ verified tool support থাকা route-এ যাবে। Stream শুরু হলে retry/failover বন্ধ—partial উত্তর duplicate হবে না। Auth/invalid request-এ অন্য provider-এ নির্বিচারে fallback হবে না।</p>
+        <p class="hint">WebLLM WebView-এর WebGPU ব্যবহার করে; browser module CDN থেকে load হতে পারে, model weights প্রথমবার নামতে পারে। iOS/Android WebView-এ WebGPU না থাকলে local provider ব্যবহারযোগ্য নাও হতে পারে।</p>
+      </article>
+
+      <article class="card agent-file-manager" id="agent-file-manager" aria-labelledby="agent-file-manager-title">
+        <div class="agent-file-manager-heading">
+          <span class="icon" aria-hidden="true">▤</span>
+          <div>
+            <h3 id="agent-file-manager-title">Workspace files — browse, edit, create & delete</h3>
+            <p>এখানে শুধু Native Agent-এর private workspace দেখা/বদলানো যায়—ফোনের অন্য app বা OS file নয়। UTF-8 text file (সর্বোচ্চ ১০ MB) editor-এ খুলবে। Save-এ conflict check ও native approval চলে; Delete-এ confirmation + native approval লাগে।</p>
+          </div>
+        </div>
+        <div class="agent-file-controls">
+          <div class="agent-file-control-row">
+            <label for="agent-files-dir">Workspace folder</label>
+            <input id="agent-files-dir" value="." autocomplete="off" spellcheck="false" aria-label="Workspace-relative folder">
+            <button type="button" data-agent-file-action="open-dir" class="secondary">Open folder</button>
+            <button type="button" data-agent-file-action="up" class="ghost" aria-label="Parent folder">↑ Up</button>
+            <button type="button" data-agent-file-action="refresh" class="ghost">Refresh</button>
+          </div>
+          <div class="agent-file-control-row">
+            <label for="agent-files-search">Find by name</label>
+            <input id="agent-files-search" placeholder="যেমন *.md বা config*" autocomplete="off" spellcheck="false">
+            <button type="button" data-agent-file-action="find" class="secondary">Search workspace</button>
+            <label class="agent-file-check"><input id="agent-files-include-skipped" type="checkbox"> বড়/system folder (.git, node_modules) দেখান</label>
+            <button type="button" data-agent-file-action="new-file">＋ New file</button>
+          </div>
+        </div>
+        <p class="hint" id="agent-files-status" data-tone="muted" aria-live="polite">Engine Initialize করার পর Refresh চাপুন। Folder ও recursive filename search—দুটিই private workspace-এর মধ্যেই সীমাবদ্ধ।</p>
+        <div class="agent-files-layout">
+          <section class="agent-file-pane" aria-label="Workspace file list">
+            <div class="agent-file-pane-heading"><h4>Files</h4><span id="agent-files-count" class="agent-file-count">—</span></div>
+            <div id="agent-files-list" class="agent-files-list" role="list" aria-label="Workspace files"></div>
+            <p class="hint">Directory খুলতে folder চাপুন; text file editor-এ খুলতে file চাপুন। Symbolic link edit/delete করা হয় না।</p>
+          </section>
+          <section class="agent-file-pane agent-file-editor" aria-label="Text file editor">
+            <div class="agent-file-pane-heading"><h4>Text editor</h4><span id="agent-file-state" class="agent-file-count">কোনো ফাইল খোলা নেই</span></div>
+            <p class="agent-file-current-path">Path: <code id="agent-file-relative-path">—</code></p>
+            <label for="agent-file-name">File name (current folder-এ)</label>
+            <input id="agent-file-name" autocomplete="off" spellcheck="false" disabled placeholder="একটি file নির্বাচন করুন বা New file চাপুন">
+            <textarea id="agent-file-content" rows="16" disabled spellcheck="false" placeholder="একটি UTF-8 text file নির্বাচন করুন অথবা নতুন file তৈরি করুন…"></textarea>
+            <div class="agent-file-editor-footer">
+              <span id="agent-file-size" class="hint">সর্বোচ্চ ১০ MB UTF-8 text</span>
+              <div class="agent-file-buttons">
+                <button type="button" data-agent-file-action="revert" class="ghost" disabled>Revert</button>
+                <button type="button" data-agent-file-action="save" disabled>Save</button>
+                <button type="button" data-agent-file-action="delete" class="danger" disabled>Delete</button>
+              </div>
+            </div>
+            <div id="agent-file-approval" class="agent-file-approval" hidden>
+              <span id="agent-file-approval-text">Native tool approval অপেক্ষা করছে।</span>
+              <div class="agent-file-buttons">
+                <button type="button" data-agent-action="agentapprove">Approve</button>
+                <button type="button" data-agent-action="agentdeny" class="ghost">Deny</button>
+              </div>
+            </div>
+            <div id="agent-file-delete-confirm" class="agent-file-delete-confirm" hidden>
+              <strong>স্থায়ীভাবে মুছে যাবে:</strong> <code id="agent-file-delete-path"></code>
+              <div class="agent-file-buttons">
+                <button type="button" data-agent-file-action="confirm-delete" class="danger">হ্যাঁ, স্থায়ীভাবে মুছুন</button>
+                <button type="button" data-agent-file-action="cancel-delete" class="ghost">বাতিল</button>
+              </div>
+            </div>
+          </section>
+        </div>
+      </article>
+
+      <div class="grid" style="margin-top:16px" aria-label="Agent API tests">
+        <article class="card"><span class="icon">◇</span><h3>① Availability</h3><p>এই device-এর ABI-তে native lib load হয় কিনা। কখনো crash করে না — unsupported হলে <code>available:false</code>।</p><button data-agent-action="agentavail">Check availability</button></article>
+
+        <article class="card"><span class="icon">⚙</span><h3>② Lifecycle</h3><p>SQLite store, workspace ও auth-profile তৈরি করে engine চালু করুন। Initialize নিজেই event listener wire করে।</p><div class="input-row"><button data-agent-action="agentinit">Initialize</button><button data-agent-action="agentinitworkspace" class="secondary">Init workspace only</button></div></article>
+
+        <article class="card"><span class="icon">⛨</span><h3>③ Auth</h3><p>Provider key engine-এর auth store-এ রাখুন (masked status ফেরত আসে)।</p><div class="input-row"><button data-agent-action="agentsetauth">Set key</button><button data-agent-action="agentauthstatus" class="secondary">Status</button></div><div class="input-row"><button data-agent-action="agentauthtoken" class="ghost">Get token</button><button data-agent-action="agentrefreshtoken" class="ghost">Refresh</button></div><div class="input-row"><button data-agent-action="agentoauth" class="ghost">OAuth exchange</button><button data-agent-action="agentdeleteauth" class="ghost">Delete</button></div></article>
+
+        <article class="card"><span class="icon">▶</span><h3>④ Agent turn</h3><p>Streaming উত্তর নিচের বাক্সে আসবে; সব event log-এ।</p><div class="input-row"><button data-agent-action="agentsend">Send message</button><button data-agent-action="agentfollowup" class="secondary">Follow up</button></div><div class="input-row"><button data-agent-action="agentsteer" class="ghost">Steer</button><button data-agent-action="agentabort" class="ghost">Abort</button></div><pre id="agent-stream" class="agent-stream" aria-live="polite"></pre></article>
+
+        <article class="card warning"><span class="icon">⚖</span><h3>Approval gate</h3><p>Agent এবং সরাসরি file-manager mutation—দুই পথেই native permission policy চলে। Write/edit/delete ডিফল্টে approval চায়; pending request-এর tool, session ও content-safe arguments এখানে দেখুন। File edit-এর approval editor card-এও দেখা যায়।</p><p id="agent-approval-status" class="hint" data-tone="muted" role="status">কোনো pending tool approval নেই।</p><pre id="agent-approval-details" class="agent-approval-details" aria-live="polite"></pre><div class="input-row"><button data-agent-action="agentapprove" disabled>Approve tool</button><button data-agent-action="agentdeny" class="secondary" disabled>Deny</button></div><div class="input-row"><button data-agent-action="agentmcpresult" class="ghost">MCP result</button><button data-agent-action="agentcronapprove" class="ghost">Cron approve</button></div></article>
+
+        <article class="card"><span class="icon">☰</span><h3>Sessions</h3><p>Multi-turn history SQLite-এ থাকে। <code>resume</code> ফেরত দেয় <code>wasInterrupted</code>।</p><div class="input-row"><button data-agent-action="agentlistsessions">List</button><button data-agent-action="agentloadsession" class="secondary">Load current</button></div><div class="input-row"><button data-agent-action="agentresume" class="ghost">Resume</button><button data-agent-action="agentnewsession" class="ghost">New key</button></div><div class="input-row"><button data-agent-action="agentclearsession" class="ghost">Clear</button></div></article>
+
+        <article class="card"><span class="icon">⏱</span><h3>Cron / heartbeat</h3><p>ঘড়ি ধরে agent নিজে কাজ চালায়। Add → Run দিয়ে সাথে সাথেই trigger করে দেখুন।</p><div class="input-row"><button data-agent-action="agentaddcron">Add job</button><button data-agent-action="agentlistcron" class="secondary">List jobs</button></div><div class="input-row"><button data-agent-action="agentruncron" class="ghost">Run now</button><button data-agent-action="agentupdatecron" class="ghost">Disable</button></div><div class="input-row"><button data-agent-action="agentlistcronruns" class="ghost">Run history</button><button data-agent-action="agentremovecron" class="ghost">Remove</button></div><div class="input-row"><button data-agent-action="agentwake" class="ghost">Wake now</button></div><div class="input-row"><button data-agent-action="agentgetsched" class="ghost">Get config</button><button data-agent-action="agentsetsched" class="ghost">Set scheduler</button></div><div class="input-row"><button data-agent-action="agentsetheartbeat" class="ghost">Set heartbeat</button></div></article>
+
+        <article class="card"><span class="icon">◐</span><h3>Background wakes</h3><p><b>সত্যিকারের OS শিডিউলিং</b> — Android-এ <code>WorkManager</code> periodic work (সর্বনিম্ন ১৫ মিনিট, তাই অনুরোধ করা interval clamp করে granted মান জানানো হয়), iOS-এ <code>BGProcessingTask</code> (অ্যাপ লঞ্চেই registered, Info.plist-এ <code>io.t6x.nativeagent.wake</code>)। wake চললে ইঞ্জিন persisted config থেকে নিজে rebuild হয়ে due cron job চালায়, নোটিফিকেশন দেয়, আর ফলাফল <code>surfaced.json</code>-এ জমা হয় — অ্যাপ বন্ধ থাকলেও। iOS-এ সময় OS ঠিক করে (<code>earliestBeginDate</code> শুধু floor) তাই <code>opportunistic:true</code>; ইউজার অ্যাপ force-quit করলে iOS আর wake দেয় না — সেটাও সৎভাবে রিপোর্ট হয়।</p><div class="input-row"><button data-agent-action="agentbgschedule">Schedule 30m</button><button data-agent-action="agentbgcancel" class="secondary">Cancel</button></div><div class="input-row"><button data-agent-action="agentwakes" class="ghost">Wake status</button><button data-agent-action="agentsurfaced" class="ghost">Surfaced msgs</button></div><div class="input-row"><button data-agent-action="agentclearsurfaced" class="ghost">Clear surfaced</button><button data-agent-action="agentwake" class="ghost">Wake now</button></div><p style="opacity:.75;font-size:.9em">"Wake now" = ফোরগ্রাউন্ড catch-up: একই due job এখনই চলে এবং ফল একই inbox-এ যায়।</p></article>
+
+        <article class="card"><span class="icon">◆</span><h3>Long-term memory</h3><p>প্লাগিনের ভেতরেই থাকা লোকাল মেমোরি (কোনো ভেক্টর DB/বাইরের প্লাগিন লাগে না) — ফাইল-ভিত্তিক স্টোর + লেক্সিক্যাল সার্চ। নিচের বাটনগুলো এজেন্টের নিজের <code>memory_*</code> টুল কল করে।</p><div class="input-row"><button data-agent-action="agentmemstore">Store</button><button data-agent-action="agentmemrecall" class="secondary">Recall</button></div><div class="input-row"><button data-agent-action="agentmemlist" class="ghost">List keys</button><button data-agent-action="agentmemforget" class="ghost">Forget</button></div></article>
+
+        <article class="card"><span class="icon">✦</span><h3>Skills</h3><p>পুনর্ব্যবহারযোগ্য prompt + tool-whitelist। Start করলে আলাদা session key ফেরত আসে।</p><div class="input-row"><button data-agent-action="agentaddskill">Add</button><button data-agent-action="agentlistskills" class="secondary">List</button></div><div class="input-row"><button data-agent-action="agentstartskill" class="ghost">Start</button><button data-agent-action="agentendskill" class="ghost">End</button></div><div class="input-row"><button data-agent-action="agentupdateskill" class="ghost">Update</button><button data-agent-action="agentremoveskill" class="ghost">Remove</button></div></article>
+
+        <article class="card"><span class="icon">⚿</span><h3>Tool permissions</h3><p>প্রতি tool-এর <code>enabled</code> ও <code>always_allow</code>/<code>always_ask</code> policy engine মানে; disabled tool schema থেকেও লুকানো থাকে।</p><div class="input-row"><button data-agent-action="agentseedperms">Seed defaults</button><button data-agent-action="agentlistperms" class="secondary">List</button></div><div class="input-row"><button data-agent-action="agentsetperm" class="ghost">Set one</button><button data-agent-action="agentresetperms" class="ghost">Reset</button></div></article>
+
+        <article class="card"><span class="icon">⧉</span><h3>MCP</h3><p>Remote tool manifest register করুন; agent সেগুলো নিজের tool হিসেবে ব্যবহার করবে।</p><div class="input-row"><button data-agent-action="agentstartmcp">Start</button><button data-agent-action="agentsetmcptools" class="secondary">Set tools</button></div><div class="input-row"><button data-agent-action="agentrestartmcp" class="ghost">Restart</button></div><div class="input-row"><input id="agent-mcp-url" type="url" placeholder="https://example.com/mcp" /></div><div class="input-row"><button data-agent-action="agentconnectmcp">Connect real MCP server</button></div></article>
+
+        <article class="card"><span class="icon">◈</span><h3>Models & tools</h3><p>JS থেকে সরাসরি একটি native tool চালানো; live model catalog ও selection উপরের routing panel-এ।</p><div class="input-row"><button data-agent-action="agentinvoketool" class="secondary">Invoke tool</button></div></article>
+
+        <article class="card"><span class="icon">≣</span><h3>Event stream</h3><p>Initialize নিজেই wire করে; আলাদা করে চাইলে এখান থেকে।</p><button data-agent-action="agentlisten" class="secondary">Listen</button></article>
+      </div>
+      </section>
+    </details>
+
+    <section class="panel network-panel">
+      <div>
+        <p class="eyebrow">NATIVE NETWORK</p>
+        <h2>REST/JSON test</h2>
+        <p>Installed app-এ explicit NativeKit HTTP browser CORS layer এড়িয়ে native transport ব্যবহার করে। Upstream TLS/auth/rate-limit তবু প্রযোজ্য।</p>
+      </div>
+      <form id="http-form">
+        <label for="url">HTTPS JSON endpoint</label>
+        <div class="input-row"><input id="url" type="url" placeholder="https://api.example.com/status" required><button>GET</button></div>
+      </form>
+    </section>
+
+    <section class="panel app-browser-panel" id="app-browser-manager">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">SANDBOXED APP BROWSER</p>
+          <h2>Third-party app manager</h2>
+          <p>Installed HTML/CSS/JS/Web Component সর্বোচ্চ-isolation renderer-এ চলে; প্রতিটি NativeKit call trusted host-এর tri-state policy/approval broker দিয়ে যায়। Remote HTTPS URL আলাদা browser-only mode—সেখানে NativeKit inject হয় না।</p>
+        </div>
+        <button id="apps-refresh" class="secondary" type="button">Refresh</button>
+      </div>
+
+      <div class="import-box quick-component-box">
+        <div class="section-heading compact">
+          <div>
+            <p class="eyebrow">⚡ QUICK ADD</p>
+            <h3>Web Component — এক ফাইলই যথেষ্ট</h3>
+          </div>
+        </div>
+        <p class="hint">
+          নিজের custom element (<code>customElements.define('my-widget', …)</code>) একটা
+          <code>.js</code>/<code>.mjs</code> ফাইল pick করলেই tag স্বয়ংক্রিয় detect হয়ে manifest +
+          entry wrapper তৈরি হবে এবং install → run হবে — অন্য কিছু লিখতে হবে না।
+          <code>.html</code> দিলে সেটা plain mini-app page হিসেবে চলবে। অনুমতি default <code>ask</code>।
+        </p>
+        <div class="field-grid">
+          <label>Component file<input id="wc-file" type="file" accept=".js,.mjs,.html,.htm"></label>
+          <label>Display name (optional)<input id="wc-name" placeholder="My widget" autocomplete="off"></label>
+        </div>
+        <div class="field-grid">
+          <label>Custom element tag (auto-detect; manually override)<input id="wc-tag" placeholder="auto-detected" autocomplete="off"></label>
+        </div>
+        <div class="import-actions">
+          <button id="wc-install" type="button" disabled>Install &amp; run</button>
+          <span id="wc-status" class="muted">কোনো file নির্বাচিত নয়</span>
+        </div>
+      </div>
+
+      <div class="import-box">
+        <div class="field-grid">
+          <label>App ID (manifest না থাকলে optional)<input id="app-id" placeholder="com.example.myapp" autocomplete="off"></label>
+          <label>Display name (optional)<input id="app-name" placeholder="My mini app" autocomplete="off"></label>
+        </div>
+        <div class="import-actions">
+          <label class="file-button">ZIP / files বাছুন<input id="app-files" type="file" accept=".zip,.html,.htm,.css,.js,.mjs,.json,.svg,.png,.jpg,.jpeg,.webp,.woff,.woff2,.ttf" multiple></label>
+          <label class="file-button secondary">Folder বাছুন<input id="app-folder" type="file" webkitdirectory multiple></label>
+          <span id="import-selection" class="muted">কোনো package নির্বাচিত নয়</span>
+          <button id="app-install" type="button" disabled>Install / update</button>
+        </div>
+        <p class="hint"><strong>Recommended:</strong> root-এ <code>nativekit.manifest.json</code> ও <code>index.html</code> রাখুন। ZIP, multi-file, directory এবং Web Component metadata সমর্থিত।</p>
+      </div>
+
+
+      <div class="import-box url-browser-box">
+        <div class="section-heading compact"><div><p class="eyebrow">BRIDGE-FREE HTTPS</p><h3>Remote URL browser mode</h3></div></div>
+        <label for="remote-url">HTTPS URL</label>
+        <div class="input-row"><input id="remote-url" type="url" inputmode="url" placeholder="https://example.com" autocomplete="off" required><button id="remote-url-open" type="button">Open without NativeKit</button></div>
+        <p class="hint">শুধু HTTPS। এই page-এ <code>window.NativeKit</code>, broker transport, injected script বা NativeKit permission prompt থাকবে না। Cookies/storage browser profile-এ থাকে; app/host থেকে strongest available platform partition ব্যবহৃত হয়।</p>
+      </div>
+
+      <div class="permission-section">
+        <div class="section-heading compact"><div><p class="eyebrow">PENDING APPROVALS</p><h3>অপেক্ষমাণ native API call</h3></div><button id="permissions-refresh" class="secondary" type="button">Refresh</button></div>
+        <div id="permissions-empty" class="empty-state">কোনো permission request অপেক্ষমাণ নেই।</div>
+        <div id="permission-requests" class="permission-requests" aria-live="assertive"></div>
+      </div>
+
+      <div id="apps-empty" class="empty-state">এখনো কোনো third-party app install করা হয়নি।</div>
+      <div id="apps-list" class="apps-list" aria-live="polite"></div>
+
+      <div id="app-policy" class="policy-editor" hidden>
+        <div class="section-heading compact">
+          <div><p class="eyebrow">PER-APP POLICY</p><h3 id="policy-title">App policy</h3></div>
+          <button id="policy-close" class="ghost" type="button">Close</button>
+        </div>
+        <label class="master-switch"><input id="policy-enabled" type="checkbox"> এই app চালু থাকবে</label>
+        <p class="hint"><strong>Ask</strong> হলে call অপেক্ষা করবে; Allow/Block stored decision ভবিষ্যৎ call-এ স্বয়ংক্রিয় হবে। Ask বা Block করলে সংশ্লিষ্ট live subscription/resource revoke করা হয়।</p>
+        <div id="capability-grid" class="capability-grid"></div>
+        <div class="network-policy">
+          <h4>Network mode</h4>
+          <p class="hint"><strong>sandboxed</strong> = আগেভাগে সব remote request বন্ধ · <strong>hosts</strong> = শুধু approved host · <strong>full</strong> = পুরো ইন্টারনেট খোলা (HTTPS/WSS + ফর্ম)। Full mode-এ app-টা তার পাওয়া native data বাইরে পাঠাতে পারে — শুধু বিশ্বস্ত app-কে দিন। প্রতিটা request-এর হিসাব নিচে usage-এ দেখা যায়।</p>
+          <div class="input-row">
+            <select id="network-mode" aria-label="Network mode">
+              <option value="sandboxed">sandboxed · network বন্ধ</option>
+              <option value="hosts">hosts · শুধু approved host</option>
+              <option value="full">full · পুরো ইন্টারনেট</option>
+            </select>
+            <button id="network-mode-save" type="button">Apply</button>
+          </div>
+          <p id="network-warning" class="hint" hidden>⚠️ FULL mode চালু: এই app সব HTTPS/WSS host-এ যেতে পারবে। Camera/files/location capability দিলে সেই data-ও বাইরে যেতে পারে।</p>
+          <label class="master-switch"><input id="media-autoplay" type="checkbox"> Media অটো-প্লে (ভিডিও/অডিও gesture ছাড়াই চালু হবে)</label>
+          <h4>Network usage (tracking)</h4>
+          <pre id="network-stats">No network activity</pre>
+        </div>
+        <div class="method-policy">
+          <h4>Method-level override</h4>
+          <div class="input-row">
+            <input id="method-name" placeholder="যেমন: http.get" autocomplete="off">
+            <select id="method-state"><option value="inherit">Inherit capability</option><option value="ask">Ask every undecided call</option><option value="allow">Always allow</option><option value="block">Always block</option></select>
+            <button id="method-save" type="button">Apply</button>
+          </div>
+          <pre id="method-overrides">No method decisions</pre>
+          <h4>Requested / used methods</h4>
+          <pre id="used-methods">No audited native API use</pre>
+        </div>
+      </div>
+
+      <div id="app-stage" class="app-stage" hidden>
+        <div class="section-heading compact"><div><p class="eyebrow">RUNNING APP</p><h3 id="stage-title">App</h3><p id="stage-status" class="stage-status">Starting…</p></div><button id="stage-stop" class="ghost" type="button">Stop</button></div>
+        <div id="app-frame-host" class="frame-host"></div>
+      </div>
+
+      <div class="audit-section">
+        <div class="section-heading compact">
+          <div><p class="eyebrow">USAGE AUDIT</p><h3>কোন app কোন Native API ব্যবহার করেছে</h3></div>
+          <div class="inline-buttons"><button id="audit-refresh" class="secondary" type="button">Refresh</button><button id="audit-clear" class="ghost danger" type="button">Clear log</button></div>
+        </div>
+        <div class="audit-table-wrap"><table><thead><tr><th>সময়</th><th>App</th><th>Native method</th><th>Outcome</th></tr></thead><tbody id="audit-rows"><tr><td colspan="4" class="muted">No audited calls</td></tr></tbody></table></div>
+      </div>
+    </section>
+
+    <section class="panel" id="blend-test">
+      <p class="eyebrow">BAR BLEND TEST</p>
+      <h2>🎨 System bar অটো মিলছে কিনা — চোখে দেখুন</h2>
+      <p class="muted" style="margin:8px 0 14px;max-width:720px;line-height:1.6">উপরের সময়/ব্যাটারি স্ট্রিপ আর নিচের বোতাম স্ট্রিপ এখন <b>transparent (কাঁচ)</b> — নিচের background বদলালেই বারগুলোও সঙ্গে সঙ্গে সেই রঙে মিলবে। কোনো রঙ বাছুন, opacity কমিয়ে দেখুন, বা একসঙ্গে অনেক রঙ (rainbow) চাপুন — একই স্ক্রিনে দুই স্ট্রিপেই আলাদা রঙ ঠিক থাকতে হবে।</p>
+      <div class="field-grid" style="grid-template-columns:repeat(2,minmax(0,1fr));gap:14px">
+        <label>একক রঙ
+          <input id="bt-color" type="color" value="#ff3355" style="width:100%;height:44px;padding:4px">
+        </label>
+        <label>Opacity (স্বচ্ছতা): <b id="bt-opacity-val">১০০%</b>
+          <input id="bt-opacity" type="range" min="0" max="100" value="100" style="width:100%">
+        </label>
+        <label>Gradient উপরের রঙ
+          <input id="bt-top" type="color" value="#ff0044" style="width:100%;height:44px;padding:4px">
+        </label>
+        <label>Gradient নিচের রঙ
+          <input id="bt-bottom" type="color" value="#00ccff" style="width:100%;height:44px;padding:4px">
+        </label>
+      </div>
+      <div class="inline-buttons" style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap">
+        <button id="bt-solid" type="button">একক রঙ লাগাও</button>
+        <button id="bt-gradient" type="button" class="secondary">২-রঙ gradient</button>
+        <button id="bt-rainbow" type="button" class="secondary">🌈 RAINBOW (৭ রঙ একসঙ্গে)</button>
+        <button id="bt-rainbow-diag" type="button" class="secondary">🌈 Diagonal rainbow</button>
+        <button id="bt-reset" type="button" class="ghost">↺ মূল রঙে ফিরো</button>
+      </div>
+      <div class="inline-buttons" style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
+        <button id="bt-fullscreen" type="button">📺 FULLSCREEN-এ ঢুকো (নিচে বাটন লাইনসহ)</button>
+      </div>
+      <pre id="bt-diag" style="margin-top:14px;font-size:11px;max-height:200px">ডায়াগনোস্টিক আসছে…</pre>
+    </section>
+
+    <section class="panel log-panel" id="host-log">
+      <div class="log-heading"><div><p class="eyebrow">HOST EVENT LOG</p><h2>Live output</h2></div><button id="clear" class="ghost">Clear</button></div>
+      <pre id="log" aria-live="polite"></pre>
+    </section>
+  </main>
+  <footer>Trusted local content only · No production <code>server.url</code> · Native permissions remain user-controlled</footer>
+</body>
+</html>

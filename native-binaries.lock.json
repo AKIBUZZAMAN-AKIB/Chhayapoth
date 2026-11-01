@@ -1,0 +1,36 @@
+{
+  "upstream": "AKIBUZZAMAN-AKIB/capacitor-agnt",
+  "commit": "523c277c5cca27436c1d762fd62eaeb945ce5f79",
+  "files": [
+    {
+      "path": "plugins/native-agent/android/src/main/jniLibs/x86/libnative_agent_ffi.so",
+      "sha256": "bd3d718ecda42bb15950ce1afde5d0d717c844e7f35c319460dfd7d3e4d2cdd5",
+      "bytes": 7992720
+    },
+    {
+      "path": "plugins/native-agent/android/src/main/jniLibs/x86_64/libnative_agent_ffi.so",
+      "sha256": "174ae15b9313ac5983db53e3a43d75a2680966949603660aa7daf1a950ec98ff",
+      "bytes": 7781560
+    },
+    {
+      "path": "plugins/native-agent/android/src/main/jniLibs/arm64-v8a/libnative_agent_ffi.so",
+      "sha256": "9db8d8e14bbec8c99c3c60a8e7a881868e1b4ba77fe40bd80faf84ebcf012faa",
+      "bytes": 7149800
+    },
+    {
+      "path": "plugins/native-agent/android/src/main/jniLibs/armeabi-v7a/libnative_agent_ffi.so",
+      "sha256": "4b382265de840d2a03e886e8b621e4ff57d152e8e79b241a35fcf67ae43bb34f",
+      "bytes": 5282904
+    },
+    {
+      "path": "plugins/native-agent/ios/Frameworks/NativeAgentFFI.xcframework/ios-arm64/libnative_agent_ffi.a",
+      "sha256": "99a5aa3231a3bb06717815422abe07aa446699c05e7e74b9745baff27d478d82",
+      "bytes": 30595784
+    },
+    {
+      "path": "plugins/native-agent/ios/Frameworks/NativeAgentFFI.xcframework/ios-arm64-simulator/libnative_agent_ffi.a",
+      "sha256": "118ba00184fed88d1787f3d5ba06e8c0430da847061931118c02b91cee96b6ee",
+      "bytes": 30559408
+    }
+  ]
+}
