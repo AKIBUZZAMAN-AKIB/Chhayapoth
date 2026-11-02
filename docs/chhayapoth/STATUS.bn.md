@@ -44,3 +44,7 @@
 - APK SHA-256: `70a5cf677124c4f5cbca4f41482b8e6f274eb83c27d6c7ff3326f21a8731a1a0`
 - APK এবং AAB-এর downloaded checksums verify করা হয়েছে; release-এ SIGNATURE.txt ও SHA256SUMS.txt আছে।
 - Test key স্থায়ী production identity নয়। পরবর্তী build update হিসেবে install নাও হতে পারে; uninstall করার আগে local data backup নিন।
+
+## পরবর্তী dashboard UI revision
+
+ব্যবহারকারী Advanced dashboard নির্বাচন করার পর `www`-এ product UI update হয়েছে। Exact BigInt totals, মাসভিত্তিক chart/table, combined ledger filters, local search, route persistence ও modal focus ঠিক করা হয়েছে। Native core অপরিবর্তিত। 369 source tests, 30 populated accessibility scans, 70 dashboard layout checks এবং offline reload test সফল। বিস্তারিত: [UI/UX review](UI-UX-REVIEW.bn.md)। এই revision পুরোনো `test-0.1.0.1` APK-তে নেই; নতুন native APK/device test দাবি করা হচ্ছে না।

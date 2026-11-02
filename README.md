@@ -74,3 +74,9 @@ The old diagnostic UI is retained at `testlab.html`. The previous UI-only design
 [Test-signed alpha release](https://github.com/AKIBUZZAMAN-AKIB/Chhayapoth/releases/tag/test-0.1.0.1) · [successful build](https://github.com/AKIBUZZAMAN-AKIB/Chhayapoth/actions/runs/41341127941).
 
 The APK/AAB passed pipeline signing verification and downloaded SHA-256 checks. The key is throwaway: no production identity or future update continuity is promised. Back up local records before changing builds. No real-device validation is claimed.
+
+## Dashboard UI revision
+
+The product shell now uses a data-first dashboard with exact minor-unit totals, month-backed charts and accessible tables, combined ledger filters, local escaped record search, hash navigation, and corrected modal focus behavior. Bangla typography is bundled locally. Native engine/provider/permission/sandbox implementations are unchanged. See [UI/UX research and verification](docs/chhayapoth/UI-UX-REVIEW.bn.md).
+
+This UI revision is newer than the APK in `test-0.1.0.1`; that earlier release does not contain these changes.

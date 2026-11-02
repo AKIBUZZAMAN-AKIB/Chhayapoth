@@ -29,7 +29,7 @@ const assert = require("node:assert/strict");
     45005,
   );
   await p.reload();
-  await p.waitForFunction(() => !!document.querySelector(".ai-card"));
+  await p.waitForSelector("#ledgerView");
   assert.equal(
     await p.evaluate(
       async () => (await ChhayapothDomain.domain.list("ledger")).length,
@@ -53,7 +53,7 @@ const assert = require("node:assert/strict");
     async () => (await ChhayapothDomain.domain.list("event")).length === 1,
   );
   await p.evaluate(() => go("store"));
-  await p.getByRole("button", { name: "হোমে যোগ করুন" }).last().click();
+  await p.getByRole("button", { name: "ড্যাশবোর্ডে যোগ করুন" }).last().click();
   await p.waitForFunction(() => !!document.querySelector(".focus-time"));
   await p.getByRole("button", { name: "২৫ মিনিট শুরু", exact: true }).click();
   assert(

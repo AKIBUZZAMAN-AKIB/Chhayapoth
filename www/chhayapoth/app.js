@@ -15,17 +15,66 @@ const today = () => {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 };
-const money = (n) =>
-  new Intl.NumberFormat("bn-BD", { style: "currency", currency: "BDT" }).format(
-    n / 100,
-  );
+// Currency never passes through floating-point division, including large totals.
+const money = (value) => {
+  const minor = BigInt(value),
+    absolute = minor < 0n ? -minor : minor;
+  const whole = new Intl.NumberFormat("bn-BD", {
+    maximumFractionDigits: 0,
+  }).format(absolute / 100n);
+  const fraction = new Intl.NumberFormat("bn-BD", {
+    minimumIntegerDigits: 2,
+    useGrouping: false,
+  }).format(absolute % 100n);
+  return `${minor < 0n ? "−" : ""}${whole}.${fraction}৳`;
+};
+const sumMinor = (records) =>
+  records.reduce((total, record) => total + BigInt(record.amountMinor), 0n);
 const navs = [
-  ["home", "home", "হোম"],
-  ["agent", "spark", "AI এজেন্ট"],
-  ["calendar", "calendar", "ক্যালেন্ডার"],
+  ["home", "home", "ড্যাশবোর্ড"],
+  ["ledger", "wallet", "হিসাব"],
+  ["calendar", "calendar", "পরিকল্পনা"],
+  ["agent", "spark", "এজেন্ট"],
   ["more", "grid", "আরও"],
 ];
-let page = "home",
+const desktopNavs = [
+  navs[0],
+  navs[2],
+  navs[1],
+  ["habits", "leaf", "অভ্যাস"],
+  ["notes", "book", "নোটস"],
+  ["learn", "chart", "শেখার স্পেস"],
+  navs[3],
+  navs[4],
+];
+const routeNames = [
+  "home",
+  "ledger",
+  "calendar",
+  "agent",
+  "more",
+  "habits",
+  "notes",
+  "learn",
+  "care",
+  "weather",
+  "messages",
+  "apps",
+  "store",
+  "settings",
+];
+const routeFromHash = () => {
+  const route = location.hash.slice(1);
+  return routeNames.includes(route) ? route : "home";
+};
+const bn = (n) => new Intl.NumberFormat("bn-BD").format(n);
+const normalizeDigits = (v) =>
+  String(v).replace(/[০-৯]/g, (digit) => "০১২৩৪৫৬৭৮৯".indexOf(digit));
+let dashboardMonth = today().slice(0, 7);
+let ledgerFilters = { period: "all", type: "all", query: "" };
+let modalTrigger = null;
+
+let page = routeFromHash(),
   rows = [],
   month = new Date().getMonth(),
   year = new Date().getFullYear(),
@@ -49,7 +98,7 @@ window.addEventListener("unhandledrejection", (e) => {
   toast(e.reason?.message || "কাজটি সম্পন্ন হয়নি। আবার চেষ্টা করুন।");
 });
 function head(title, kicker, action = "") {
-  return `<div class="hero"><div><div class="eyebrow">${kicker}</div><h1>${title}</h1></div>${action}</div>`;
+  return `<div class="hero"><div><div class="eyebrow">${kicker}</div><h1 tabindex="-1">${title}</h1></div>${action}</div>`;
 }
 function addBtn(kind, label) {
   return `<button class="btn primary" onclick="recordForm('${kind}')">${ic("plus")}${label}</button>`;
@@ -57,44 +106,53 @@ function addBtn(kind, label) {
 function empty(s) {
   return `<p class="empty">${s}</p>`;
 }
-async function go(p) {
+async function go(p, push = true) {
+  if (!routeNames.includes(p)) p = "home";
+  if (!$("modal").classList.contains("hidden")) closeModal();
   if (miniSession) {
     await miniSession.stop().catch(() => {});
     miniSession = null;
   }
   page = p;
   editing = false;
+  if (push && location.hash !== "#" + p)
+    history.pushState({ page: p }, "", "#" + p);
   await render();
   window.scrollTo(0, 0);
+  $("content").querySelector("h1")?.focus({ preventScroll: true });
 }
+window.addEventListener("hashchange", () =>
+  go(routeFromHash(), false).catch((e) => toast(e.message)),
+);
 async function render() {
   const token = ++renderVersion;
   rows = await D.list();
   if (token !== renderVersion) return;
   for (const id of ["desktopNav", "mobileNav"])
-    $(id).innerHTML = navs
+    $(id).innerHTML = (id === "desktopNav" ? desktopNavs : navs)
       .map(
         ([p, i, t]) =>
-          `<button class="${id === "desktopNav" ? "navbtn " : ""}${page === p || (p === "more" && !navs.some((x) => x[0] === page)) ? "active" : ""}" onclick="go('${p}')" ${page === p ? 'aria-current="page"' : ""}>${ic(i)}<span>${t}</span></button>`,
+          `<button class="${id === "desktopNav" ? "navbtn " : ""}${page === p || (p === "more" && !(id === "desktopNav" ? desktopNavs : navs).some((x) => x[0] === page)) ? "active" : ""}" onclick="go('${p}')" ${page === p ? 'aria-current="page"' : ""}>${ic(i)}<span>${t}</span></button>`,
       )
       .join("");
   const titles = {
-    home: "হোম",
+    home: "ড্যাশবোর্ড",
     agent: "AI এজেন্ট",
     calendar: "ক্যালেন্ডার",
     more: "আরও",
     habits: "অভ্যাস",
     ledger: "আয়-ব্যয়",
     learn: "শেখার স্পেস",
-    care: "Care routines",
+    care: "যত্ন ও রিমাইন্ডার",
     weather: "আবহাওয়া",
-    messages: "Nearby messages",
-    apps: "Mini-apps",
-    store: "Widget library",
+    messages: "কাছাকাছি বার্তা",
+    apps: "মিনি-অ্যাপ",
+    store: "উইজেট লাইব্রেরি",
     notes: "নোটস",
     settings: "সেটিংস",
   };
   $("breadcrumb").textContent = titles[page] || "ছায়াপথ";
+  document.title = `${titles[page] || "ছায়াপথ"} · Chhayapoth`;
   $("content").innerHTML = {
     home,
     agent,
@@ -118,33 +176,150 @@ async function render() {
   if (page === "settings") loadAudit();
 }
 function home() {
-  const complete = byKind("habit").filter((h) =>
-    h.logs.includes(today()),
-  ).length;
-  const expenses = byKind("ledger")
-    .filter(
-      (x) => x.type === "expense" && x.date.startsWith(today().slice(0, 7)),
-    )
-    .reduce((n, x) => n + x.amountMinor, 0);
+  const habits = byKind("habit"),
+    complete = habits.filter((h) => h.logs.includes(today())).length;
+  const transactions = byKind("ledger").filter((t) =>
+    t.date.startsWith(dashboardMonth),
+  );
+  const income = sumMinor(transactions.filter((t) => t.type === "income"));
+  const expense = sumMinor(transactions.filter((t) => t.type === "expense"));
   const widgets = byKind("widget").sort((a, b) => a.order - b.order);
+  const events = byKind("event").filter((e) => localDay(e.at) === today());
   return (
     head(
-      "দিনটা হোক আপনার মতো।",
+      "আপনার দিন, এক নজরে।",
       new Date().toLocaleDateString("bn-BD", {
         weekday: "long",
         day: "numeric",
         month: "long",
         year: "numeric",
       }),
-      `<button class="btn" onclick="editing=!editing;render()">${ic("settings")}${editing ? "সম্পন্ন" : "হোম সাজান"}</button>`,
+      `<button class="btn primary" onclick="quickAdd()">${ic("plus")}নতুন যোগ করুন</button>`,
     ) +
-    `<div class="grid"><div class="stack"><section class="card ai-card"><div class="ai-tag">${ic("spark")} CHHAYAPOTH · EVERYDAY COMPANION</div><h2>কম ব্যস্ততা,<br>আরও একটু নিজের সময়।</h2><p>শেখা, পরিকল্পনা আর ছোট ছোট কাজ—একটি ব্যক্তিগত স্পেসে। শুরু হোক একটি ছোট পদক্ষেপ দিয়ে।</p><div class="row"><button class="btn primary" onclick="go('agent')">${ic("spark")}এজেন্ট খুলুন</button><button class="btn" onclick="go('learn')">শিখতে শুরু করুন ↗</button></div><div class="quick"><button onclick="recordForm('event')">+ পরিকল্পনা</button><button onclick="recordForm('ledger')">+ খরচ / আয়</button><button onclick="go('store')">+ Widget</button></div></section><div class="mini-stats"><div class="stat"><strong>${byKind("event").filter((e) => localDay(e.at) === today()).length}</strong><small>আজকের পরিকল্পনা</small></div><div class="stat"><strong>${complete}/${byKind("habit").length}</strong><small>অভ্যাস সম্পন্ন</small></div><div class="stat"><strong style="font-size:20px">${money(expenses)}</strong><small>মাসের নথিভুক্ত খরচ</small></div></div>${agenda(today())}${widgets
-      .filter((w) => ["ledger", "notes", "focus"].includes(w.template))
-      .map(widgetCard)
-      .join(
-        "",
-      )}<button class="btn" style="padding:16px;border-style:dashed" onclick="go('store')">${ic("plus")}নিজের মতো widget যোগ করুন</button></div><div class="stack"><section class="card"><div class="card-head"><span class="card-title">${new Date().toLocaleDateString("bn-BD", { month: "long", year: "numeric" })}</span><button class="link" onclick="go('calendar')">ক্যালেন্ডার ↗</button></div>${calendarGrid(new Date().getMonth(), new Date().getFullYear(), true)}</section>${habitCard()}<section class="card"><div class="card-head"><span class="card-title">আপনার প্রয়োজন, এক জায়গায়</span></div><div class="mini-apps"><button onclick="go('learn')"><span class="appicon mint">${ic("book")}</span>শিখুন</button><button onclick="go('ledger')"><span class="appicon blue">${ic("grid")}</span>হিসাব</button><button onclick="go('messages')"><span class="appicon">${ic("message")}</span>Nearby</button><button onclick="go('apps')"><span class="appicon">${ic("plus")}</span>Apps</button></div></section><div class="notice">Core utilities কাজ করে। Native AI, notification ও Nearby-এর জন্য Android/iOS build দরকার।</div></div></div>`
+    `<section class="dashboard-welcome ai-card"><div>${ic("chart")}<div><strong>আপনার ব্যক্তিগত ড্যাশবোর্ড</strong><p>নথিভুক্ত তথ্য থেকেই সব হিসাব। কোনো নমুনা বা অনুমানভিত্তিক সংখ্যা নয়।</p></div></div><label class="period-field">হিসাবের মাস<input id="dashboardMonth" aria-label="ড্যাশবোর্ডের হিসাবের মাস" type="month" value="${dashboardMonth}" onchange="setDashboardMonth(this.value)"></label></section>
+    <div class="dashboard-stats">
+      ${metric("মাসের নথিভুক্ত আয়", money(income), "wallet", "positive", "নথি: " + bn(transactions.filter((t) => t.type === "income").length))}
+      ${metric("মাসের নথিভুক্ত খরচ", money(expense), "arrow", "expense", "নথি: " + bn(transactions.filter((t) => t.type === "expense").length))}
+      ${metric("আয় − খরচ", money(income - expense), "chart", "", "ব্যাংক ব্যালেন্স নয়")}
+      ${metric("আজকের অভ্যাস", bn(complete) + " / " + bn(habits.length), "leaf", "", habits.length ? bn(Math.round((complete / habits.length) * 100)) + "% সম্পন্ন" : "প্রথম অভ্যাস যোগ করুন")}
+    </div>
+    <div class="quick-actions" aria-label="দ্রুত কাজ"><button onclick="recordForm('ledger')">${ic("wallet")}আয় / খরচ লিখুন</button><button onclick="recordForm('event')">${ic("calendar")}পরিকল্পনা রাখুন</button><button onclick="recordForm('note')">${ic("book")}নোট লিখুন</button><button onclick="go('agent')">${ic("spark")}এজেন্ট খুলুন</button></div>
+    <div class="dashboard-grid"><div class="stack">
+      <section class="card"><div class="card-head"><div><h2>আয়-ব্যয়ের চিত্র</h2><p class="sub">নির্বাচিত মাসের নথিভুক্ত লেনদেন</p></div><button class="link" onclick="go('ledger')">হিসাব দেখুন ${ic("arrow")}</button></div>${cashflowChart(transactions)}</section>
+      ${agenda(today())}
+      <section class="card"><div class="card-head"><h2>সাম্প্রতিক লেনদেন</h2><button class="link" onclick="go('ledger')">সব দেখুন</button></div>${
+        transactions.length
+          ? transactions
+              .slice()
+              .sort(
+                (a, b) =>
+                  b.date.localeCompare(a.date) ||
+                  b.createdAt.localeCompare(a.createdAt),
+              )
+              .slice(0, 4)
+              .map(
+                (t) =>
+                  `<div class="transaction-row"><span class="transaction-icon ${t.type}">${ic("wallet")}</span><div><strong>${esc(t.title)}</strong><p>${esc(t.category)} · ${esc(t.date)}</p></div><span class="amount ${t.type}">${t.type === "income" ? "+" : "−"}${money(t.amountMinor)}</span></div>`,
+              )
+              .join("")
+          : empty("এই মাসে কোনো লেনদেন নেই। আয় বা খরচ লিখলেই এখানে দেখা যাবে।")
+      }</section>
+      ${widgets
+        .filter((w) => ["ledger", "notes", "focus"].includes(w.template))
+        .map(widgetCard)
+        .join("")}
+    </div><div class="stack">
+      ${habitCard()}
+      <section class="card"><div class="card-head"><h2>আজকের সারাংশ</h2>${ic("calendar")}</div><div class="summary-line"><span>পরিকল্পনা</span><strong>${bn(events.length)}টি</strong></div><div class="summary-line"><span>সংরক্ষিত নোট</span><strong>${bn(byKind("note").length)}টি</strong></div><div class="summary-line"><span>অভ্যাস সম্পন্ন</span><strong>${bn(complete)}টি</strong></div><button class="btn full" onclick="go('calendar')">দিনের পরিকল্পনা খুলুন ${ic("arrow")}</button></section>
+      <section class="card calendar-card"><div class="card-head"><h2>${new Date().toLocaleDateString("bn-BD", { month: "long", year: "numeric" })}</h2><button class="link" onclick="go('calendar')" aria-label="পূর্ণ ক্যালেন্ডার খুলুন">${ic("arrow")}</button></div>${calendarGrid(new Date().getMonth(), new Date().getFullYear(), true)}</section>
+      <section class="card"><div class="card-head"><h2>নিজের মতো সাজান</h2><button class="link" onclick="editing=!editing;render()">${editing ? "সম্পন্ন" : "সাজান"}</button></div><p class="section-desc">নোট, ফোকাস টাইমার ও হিসাবের উইজেট ড্যাশবোর্ডে রাখুন।</p><button class="btn full" onclick="go('store')">${ic("plus")}উইজেট যোগ করুন</button></section>
+    </div></div>`
   );
+}
+function metric(label, value, icon, tone, note) {
+  return `<section class="metric ${tone}"><div class="metric-label">${esc(label)}<span>${ic(icon)}</span></div><strong>${esc(value)}</strong><small>${esc(note)}</small></section>`;
+}
+function setDashboardMonth(value) {
+  if (/^\d{4}-\d{2}$/.test(value)) {
+    dashboardMonth = value;
+    render();
+  }
+}
+function cashflowChart(transactions) {
+  if (!transactions.length)
+    return `<div class="chart-empty">${ic("chart")}<strong>আপনার হিসাব থেকেই চিত্র তৈরি হবে</strong><p>এই মাসের প্রথম লেনদেনটি যোগ করুন।</p><button class="btn" onclick="recordForm('ledger')">${ic("plus")}লেনদেন যোগ করুন</button></div>`;
+  const buckets = Array.from({ length: 5 }, (_, i) => ({
+    label: i === 4 ? "২৯–শেষ" : ["১–৭", "৮–১৪", "১৫–২১", "২২–২৮"][i],
+    income: 0n,
+    expense: 0n,
+  }));
+  for (const t of transactions)
+    buckets[Math.min(4, Math.floor((Number(t.date.slice(8)) - 1) / 7))][
+      t.type
+    ] += BigInt(t.amountMinor);
+  const max = buckets
+    .flatMap((b) => [b.income, b.expense])
+    .reduce((largest, n) => (n > largest ? n : largest), 1n);
+  const bars = buckets
+    .map((b, i) => {
+      const x = 50 + i * 88;
+      return `<rect x="${x}" y="${175 - (Number(b.income) / Number(max)) * 135}" width="22" height="${(Number(b.income) / Number(max)) * 135}" rx="4" class="chart-income"/><rect x="${x + 27}" y="${175 - (Number(b.expense) / Number(max)) * 135}" width="22" height="${(Number(b.expense) / Number(max)) * 135}" rx="4" class="chart-expense"/><text x="${x + 25}" y="202" text-anchor="middle">${b.label}</text>`;
+    })
+    .join("");
+  return `<div class="chart-legend"><span><i class="income-dot"></i>আয়</span><span><i class="expense-dot"></i>খরচ</span></div><svg class="cashflow-chart" role="img" aria-label="নির্বাচিত মাসের পাঁচটি তারিখ-পর্বে আয় ও খরচ। সঠিক অঙ্ক নিচের সারণিতে আছে।" viewBox="0 0 500 215"><path d="M25 40H490M25 107H490M25 175H490" class="chart-grid"/>${bars}</svg><details class="chart-details"><summary>চিত্রের সঠিক অঙ্ক দেখুন</summary><div class="table-wrap"><table><caption class="sr-only">টাকায় নথিভুক্ত আয় ও খরচ</caption><thead><tr><th scope="col">তারিখ</th><th scope="col">আয়</th><th scope="col">খরচ</th></tr></thead><tbody>${buckets.map((b) => `<tr><th scope="row">${b.label}</th><td>${money(b.income)}</td><td>${money(b.expense)}</td></tr>`).join("")}</tbody></table></div></details>`;
+}
+function quickAdd() {
+  openModal(
+    `<h2>কী যোগ করতে চান?</h2><p class="section-desc">আপনার ড্যাশবোর্ডের একই ডেটায় সংরক্ষিত হবে।</p><div class="quick-add-grid">${[
+      ["ledger", "wallet", "আয় / খরচ"],
+      ["event", "calendar", "পরিকল্পনা"],
+      ["note", "book", "নোট"],
+      ["habit", "leaf", "অভ্যাস"],
+    ]
+      .map(
+        ([kind, icon, label]) =>
+          `<button class="menu-card" onclick="recordForm('${kind}')">${ic(icon)}<strong>${label}</strong></button>`,
+      )
+      .join("")}</div>`,
+  );
+}
+function openSearch() {
+  openModal(
+    `<h2>নিজের রেকর্ড খুঁজুন</h2><label class="field">নাম, নোট বা বিভাগ<input id="recordSearch" type="search" maxlength="160" placeholder="যেমন: বাজার, গণিত…" oninput="searchRecords(this.value)"></label><p class="sub">শুধু এই ডিভাইসের shared records; মিনি-অ্যাপের আলাদা ডেটা নয়।</p><div id="searchResults" role="status"></div>`,
+  );
+  $("recordSearch").focus();
+}
+function searchRecords(value) {
+  const query = value.trim().toLocaleLowerCase("bn");
+  const routes = {
+    ledger: "ledger",
+    event: "calendar",
+    habit: "habits",
+    note: "notes",
+    reminder: "care",
+    widget: "home",
+    quiz: "learn",
+    message: "messages",
+  };
+  const matches = rows.filter((r) =>
+    [r.title, r.body, r.note, r.category].some((v) =>
+      String(v || "")
+        .toLocaleLowerCase("bn")
+        .includes(query),
+    ),
+  );
+  $("searchResults").innerHTML = !query
+    ? empty("খোঁজার জন্য কিছু লিখুন।")
+    : matches.length
+      ? `<p class="sub">${bn(matches.length)}টি ফলাফল${matches.length > 30 ? " · প্রথম ৩০টি দেখানো হচ্ছে" : ""}</p>` +
+        matches
+          .slice(0, 30)
+          .map(
+            (r) =>
+              `<button class="search-result" onclick="go('${routes[r.kind] || "home"}')"><strong>${esc(r.title)}</strong>${ic("arrow")}</button>`,
+          )
+          .join("")
+      : empty("কোনো রেকর্ড মেলেনি। অন্য শব্দ দিয়ে চেষ্টা করুন।");
 }
 function localDay(iso) {
   const d = new Date(iso);
@@ -157,7 +332,7 @@ function agenda(day) {
   return `<section class="card"><div class="card-head"><span class="card-title">${ic("calendar")}${day === today() ? "আজকের পরিকল্পনা" : esc(day)}</span><button class="link" onclick="recordForm('event')">+ নতুন</button></div>${es.length ? es.map((e, i) => `<div class="rowitem"><div><strong style="font-size:13px">${esc(e.title)}</strong><p>${new Date(e.at).toLocaleTimeString("bn-BD", { hour: "2-digit", minute: "2-digit" })} · ${esc(e.note)}</p></div>${actions(e)}</div>`).join("") : empty("এখনও পরিকল্পনা নেই। একটি ছোট কাজ দিয়ে শুরু করুন।")}</section>`;
 }
 function actions(r) {
-  return `<div class="row"><button class="link" onclick="recordForm('${r.kind}','${r.id}')" aria-label="Edit ${esc(r.title)}">সম্পাদনা</button><button class="link" onclick="deleteRecord('${r.id}')" aria-label="Delete ${esc(r.title)}">মুছুন</button></div>`;
+  return `<div class="row"><button class="link" onclick="recordForm('${r.kind}','${r.id}')" aria-label="${esc(r.title)} সম্পাদনা করুন">সম্পাদনা</button><button class="link" onclick="deleteRecord('${r.id}')" aria-label="${esc(r.title)} মুছুন">মুছুন</button></div>`;
 }
 function calendarGrid(m, y, mini = false) {
   let first = new Date(y, m, 1).getDay(),
@@ -166,7 +341,7 @@ function calendarGrid(m, y, mini = false) {
     { length: count },
     (_, i) => {
       const day = `${y}-${String(m + 1).padStart(2, "0")}-${String(i + 1).padStart(2, "0")}`;
-      return `<button class="${selected === day ? "selected " : ""}${day === today() ? "today " : ""}${byKind("event").some((e) => localDay(e.at) === day) ? "has" : ""}" onclick="selectDate('${day}')">${i + 1}</button>`;
+      return `<button class="${selected === day ? "selected " : ""}${day === today() ? "today " : ""}${byKind("event").some((e) => localDay(e.at) === day) ? "has" : ""}" aria-label="${new Date(y, m, i + 1).toLocaleDateString("bn-BD", { day: "numeric", month: "long", year: "numeric" })}" ${day === today() ? 'aria-current="date"' : ""} aria-pressed="${selected === day}" onclick="selectDate('${day}')">${bn(i + 1)}</button>`;
     },
   ).join("")}</div>`;
 }
@@ -183,7 +358,7 @@ function calendar() {
       "CALENDAR & PLANNER",
       addBtn("event", "নতুন পরিকল্পনা"),
     ) +
-    `<div class="grid"><section class="card"><div class="card-head"><button class="btn" onclick="changeMonth(-1)" aria-label="Previous month">←</button><strong>${new Date(year, month, 1).toLocaleDateString("bn-BD", { month: "long", year: "numeric" })}</strong><button class="btn" onclick="changeMonth(1)" aria-label="Next month">→</button></div>${calendarGrid(month, year)}</section><div class="stack">${agenda(selected)}<div class="notice">এই calendar-এর data Home ও agent domain tools-এ একই থাকে। আপনার original Pro Planner আলাদা sandboxed mini-app হিসেবে Library-তে আছে; তার database এখনো migrate করা হয়নি।</div><button class="btn" onclick="go('apps')">Original Pro Planner খুলুন ↗</button></div></div>`
+    `<div class="grid"><section class="card"><div class="card-head"><button class="btn" onclick="changeMonth(-1)" aria-label="আগের মাস">←</button><strong>${new Date(year, month, 1).toLocaleDateString("bn-BD", { month: "long", year: "numeric" })}</strong><button class="btn" onclick="changeMonth(1)" aria-label="পরের মাস">→</button></div>${calendarGrid(month, year)}</section><div class="stack">${agenda(selected)}<div class="notice">এই calendar-এর data Home ও agent domain tools-এ একই থাকে। আপনার original Pro Planner আলাদা sandboxed mini-app হিসেবে Library-তে আছে; তার database এখনো migrate করা হয়নি।</div><button class="btn" onclick="go('apps')">Original Pro Planner খুলুন ↗</button></div></div>`
   );
 }
 function changeMonth(n) {
@@ -195,7 +370,7 @@ function changeMonth(n) {
 }
 function habitCard() {
   const hs = byKind("habit");
-  return `<section class="card"><div class="card-head"><span class="card-title">${ic("leaf")}একটু একটু করে, প্রতিদিন</span><button class="link" onclick="recordForm('habit')">+ অভ্যাস</button></div>${hs.length ? hs.map((h) => `<div class="habit"><span class="habit-icon">${ic("leaf")}</span><div class="habit-name">${esc(h.title)}<small>${h.logs.length} দিন নথিভুক্ত</small></div><button class="check ${h.logs.includes(today()) ? "done" : ""}" aria-label="Toggle ${esc(h.title)}" aria-pressed="${h.logs.includes(today())}" onclick="toggleHabit('${h.id}')">${h.logs.includes(today()) ? "✓" : ""}</button></div>`).join("") : empty("আজ থেকেই একটি ভালো অভ্যাস গড়ুন।")}</section>`;
+  return `<section class="card"><div class="card-head"><span class="card-title">${ic("leaf")}একটু একটু করে, প্রতিদিন</span><button class="link" onclick="recordForm('habit')">+ অভ্যাস</button></div>${hs.length ? hs.map((h) => `<div class="habit"><span class="habit-icon">${ic("leaf")}</span><div class="habit-name">${esc(h.title)}<small>${bn(h.logs.length)} দিন নথিভুক্ত</small></div><button class="check ${h.logs.includes(today()) ? "done" : ""}" aria-label="${esc(h.title)}: আজকের অবস্থা বদলান" aria-pressed="${h.logs.includes(today())}" onclick="toggleHabit('${h.id}')">${h.logs.includes(today()) ? "✓" : ""}</button></div>`).join("") : empty("আজ থেকেই একটি ভালো অভ্যাস গড়ুন।")}</section>`;
 }
 async function toggleHabit(id) {
   const h = rows.find((x) => x.id === id);
@@ -224,36 +399,55 @@ function habits() {
   );
 }
 function ledger() {
-  let inc = 0,
-    out = 0;
-  byKind("ledger").forEach((t) =>
-    t.type === "income" ? (inc += t.amountMinor) : (out += t.amountMinor),
-  );
   return (
     head(
       "হিসাব থাকুক পরিষ্কার।",
-      "INCOME & EXPENSES",
+      "আয় ও ব্যয় · শুধু আপনার নথিভুক্ত তথ্য",
       addBtn("ledger", "নতুন এন্ট্রি"),
     ) +
-    `<div class="mini-stats" style="margin-bottom:20px"><div class="stat"><strong style="font-size:23px">${money(inc)}</strong><small>নথিভুক্ত আয়</small></div><div class="stat"><strong style="font-size:23px">${money(out)}</strong><small>নথিভুক্ত খরচ</small></div><div class="stat"><strong style="font-size:23px">${money(inc - out)}</strong><small>পার্থক্য</small></div></div><section class="card">${
-      byKind("ledger").length
-        ? byKind("ledger")
-            .sort((a, b) => b.date.localeCompare(a.date))
-            .map(
-              (t) =>
-                `<div class="rowitem"><div><strong>${esc(t.title)}</strong><p>${esc(t.category)} · ${esc(t.date)}</p><span class="amount ${t.type}">${t.type === "expense" ? "−" : "+"}${money(t.amountMinor)}</span></div>${actions(t)}</div>`,
-            )
-            .join("")
-        : empty("প্রথম আয় বা খরচটি নথিভুক্ত করুন।")
-    }</section><p class="section-desc">এটি শুধু আপনার নথিভুক্ত লেনদেনের হিসাব, bank balance বা financial advice নয়।</p>`
+    `<section class="card filter-card"><div class="filter-grid"><label class="field">সময়<select id="ledgerPeriod" onchange="updateLedgerFilters()"><option value="all" ${ledgerFilters.period === "all" ? "selected" : ""}>সব সময়</option><option value="month" ${ledgerFilters.period === "month" ? "selected" : ""}>চলতি মাস</option><option value="today" ${ledgerFilters.period === "today" ? "selected" : ""}>আজ</option></select></label><label class="field">ধরন<select id="ledgerType" onchange="updateLedgerFilters()"><option value="all" ${ledgerFilters.type === "all" ? "selected" : ""}>আয় ও খরচ</option><option value="income" ${ledgerFilters.type === "income" ? "selected" : ""}>শুধু আয়</option><option value="expense" ${ledgerFilters.type === "expense" ? "selected" : ""}>শুধু খরচ</option></select></label><label class="field search-field">লেনদেন খুঁজুন<input id="ledgerQuery" type="search" maxlength="160" value="${esc(ledgerFilters.query)}" placeholder="নাম বা বিভাগ…" oninput="updateLedgerFilters()"></label></div></section><div id="ledgerView">${ledgerView()}</div><p class="section-desc">দেখানো সারাংশে শুধু নির্বাচিত filter-এর লেনদেন অন্তর্ভুক্ত। এটি ব্যাংক ব্যালেন্স বা আর্থিক পরামর্শ নয়।</p>`
   );
+}
+function ledgerView() {
+  const query = ledgerFilters.query.toLocaleLowerCase("bn").trim();
+  const items = byKind("ledger")
+    .filter(
+      (t) =>
+        (ledgerFilters.type === "all" || t.type === ledgerFilters.type) &&
+        (ledgerFilters.period === "all" ||
+          (ledgerFilters.period === "today"
+            ? t.date === today()
+            : t.date.startsWith(today().slice(0, 7)))) &&
+        (!query ||
+          [t.title, t.category].some((v) =>
+            v.toLocaleLowerCase("bn").includes(query),
+          )),
+    )
+    .sort(
+      (a, b) =>
+        b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt),
+    );
+  const income = sumMinor(items.filter((t) => t.type === "income")),
+    expense = sumMinor(items.filter((t) => t.type === "expense"));
+  return `<div class="mini-stats">${metric("নির্বাচিত আয়", money(income), "wallet", "positive", "")}${metric("নির্বাচিত খরচ", money(expense), "wallet", "expense", "")}${metric("আয় − খরচ", money(income - expense), "chart", "", "")}</div><section class="card"><div class="card-head"><h2>লেনদেনের তালিকা</h2><span class="badge" role="status">${bn(items.length)}টি রেকর্ড</span></div>${items.length ? items.map((t) => `<div class="rowitem"><div><strong>${esc(t.title)}</strong><p>${esc(t.category)} · ${esc(t.date)}</p><span class="amount ${t.type}">${t.type === "expense" ? "−" : "+"}${money(t.amountMinor)}</span></div>${actions(t)}</div>`).join("") : empty(byKind("ledger").length ? "এই filter-এ কোনো লেনদেন মেলেনি।" : "প্রথম আয় বা খরচটি নথিভুক্ত করুন।")}</section>`;
+}
+function updateLedgerFilters() {
+  ledgerFilters = {
+    period: $("ledgerPeriod").value,
+    type: $("ledgerType").value,
+    query: $("ledgerQuery").value,
+  };
+  $("ledgerView").innerHTML = ledgerView();
 }
 function field(label, name, value = "", type = "text", required = true) {
   return `<label class="field">${label}<input type="${type}" name="${name}" value="${esc(value)}" ${required ? "required" : ""} maxlength="${type === "text" ? 160 : 200}"></label>`;
 }
 function recordForm(kind, id) {
   const r = rows.find((x) => x.id === id) || {};
-  let content = field("নাম / বিবরণ", "title", r.title || "");
+  let content = field("নাম / বিবরণ", "title", r.title || "").replace(
+    'maxlength="160"',
+    `maxlength="${kind === "habit" ? 80 : kind === "ledger" ? 120 : 160}"`,
+  );
   if (kind === "event" || kind === "reminder") {
     const d = r.at ? new Date(r.at) : new Date(selected + "T17:00:00");
     const local = new Date(d.getTime() - d.getTimezoneOffset() * 60000)
@@ -278,8 +472,11 @@ function recordForm(kind, id) {
         "amount",
         r.amountMinor ? (r.amountMinor / 100).toFixed(2) : "",
         "text",
+      ).replace(
+        'name="amount"',
+        'name="amount" inputmode="decimal" placeholder="১২৩.৪৫"',
       ) +
-      field("বিভাগ", "category", r.category || "General") +
+      field("বিভাগ", "category", r.category || "সাধারণ") +
       field("তারিখ", "date", r.date || today(), "date");
   }
   if (kind === "note")
@@ -302,17 +499,21 @@ async function saveRecord(form, kind, id, rev) {
     if (data.at) data.at = new Date(data.at).toISOString();
     if (kind === "habit" && !id) data.logs = [];
     if (kind === "ledger") {
-      data.amountMinor = ChhayapothDomain.parseMoney(data.amount);
+      data.amountMinor = ChhayapothDomain.parseMoney(
+        normalizeDigits(data.amount),
+      );
       delete data.amount;
     }
     if (id) await D.update(id, data, rev);
     else await D.create(kind, data);
     closeModal();
     await render();
+    $("content").querySelector("h1")?.focus({ preventScroll: true });
     toast("তথ্য সংরক্ষিত হয়েছে।");
   } catch (e) {
-    $("formError").textContent = e.message;
-    button.disabled = false;
+    if ($("formError")) $("formError").textContent = e.message;
+    else toast(e.message);
+    if (button.isConnected) button.disabled = false;
   }
 }
 async function deleteRecord(id) {
@@ -349,7 +550,7 @@ function widgetCard(w) {
       : w.template === "notes"
         ? `<p class="section-desc">${byKind("note").length}টি নোট</p><button class="btn" onclick="go('notes')">নোটস ↗</button>`
         : `<div class="focus-time" id="focusClock">${focusText()}</div><button class="btn" onclick="startFocus()">${focusEnd ? "পুনরায় ২৫ মিনিট" : "২৫ মিনিট শুরু"}</button>`;
-  return `<section class="card"><div class="card-head"><span class="card-title">${esc(w.title)}</span>${editing ? `<div class="row"><button class="link" onclick="moveWidget('${w.id}',-1)">↑</button><button class="link" onclick="moveWidget('${w.id}',1)">↓</button><button class="link" onclick="deleteRecord('${w.id}')">সরান</button></div>` : ""}</div>${body}</section>`;
+  return `<section class="card"><div class="card-head"><span class="card-title">${esc(w.title)}</span>${editing ? `<div class="row"><button class="link" aria-label="${esc(w.title)} উপরে নিন" onclick="moveWidget('${w.id}',-1)">↑</button><button class="link" aria-label="${esc(w.title)} নিচে নিন" onclick="moveWidget('${w.id}',1)">↓</button><button class="link" onclick="deleteRecord('${w.id}')">সরান</button></div>` : ""}</div>${body}</section>`;
 }
 async function moveWidget(id, direction) {
   const ws = byKind("widget").sort((a, b) => a.order - b.order),
@@ -367,12 +568,12 @@ function store() {
     head("নিজের মতো সাজিয়ে নিন।", "WIDGET LIBRARY") +
     `<p class="section-desc">Curated templates; custom code এখানে host DOM-এ চালানো হয় না। Agenda ও habits Home-এ স্থায়ী core cards।</p><div class="store-grid">${[
       ["ledger", "আয়-ব্যয়ের সারাংশ", "নথিভুক্ত হিসাব এক নজরে।"],
-      ["notes", "Quick notes", "মনে রাখার জিনিসগুলো কাছেই।"],
-      ["focus", "Focus timer", "শুধু ফোকাসের জন্য ২৫ মিনিট।"],
+      ["notes", "দ্রুত নোট", "মনে রাখার জিনিসগুলো কাছেই।"],
+      ["focus", "ফোকাস টাইমার", "শুধু ফোকাসের জন্য ২৫ মিনিট।"],
     ]
       .map(
         ([t, name, desc]) =>
-          `<section class="store-item"><span class="appicon mint">${ic(t === "focus" ? "clock" : "grid")}</span><h3>${name}</h3><p>${desc}</p><button class="btn primary" onclick="addWidget('${t}','${name}')">হোমে যোগ করুন</button></section>`,
+          `<section class="store-item"><span class="appicon mint">${ic(t === "focus" ? "clock" : "grid")}</span><h3>${name}</h3><p>${desc}</p><button class="btn primary" onclick="addWidget('${t}','${name}')">ড্যাশবোর্ডে যোগ করুন</button></section>`,
       )
       .join(
         "",
@@ -408,7 +609,12 @@ function startFocus() {
 function more() {
   const links = [
     ["learn", "book", "শেখার স্পেস", "গণিতের গ্রাফ, অনুশীলন ও feedback"],
-    ["care", "shield", "Care routines", "নির্ধারিত reminder ও স্বাস্থ্যতথ্য"],
+    [
+      "care",
+      "shield",
+      "যত্ন ও রিমাইন্ডার",
+      "চিকিৎসকের নির্ধারিত সময় মনে রাখুন",
+    ],
     ["ledger", "grid", "আয়-ব্যয়", "আপনার হিসাব, আপনার নিয়ন্ত্রণে"],
     [
       "weather",
@@ -419,17 +625,17 @@ function more() {
     [
       "messages",
       "message",
-      "Nearby messages",
+      "কাছাকাছি বার্তা",
       "সামঞ্জস্যপূর্ণ কাছের device-এ যোগাযোগ",
     ],
     ["habits", "leaf", "অভ্যাস", "আজকের ছোট পদক্ষেপ"],
     [
       "apps",
       "grid",
-      "Mini-app library",
+      "মিনি-অ্যাপ লাইব্রেরি",
       "Original planner, tracker এবং import",
     ],
-    ["store", "plus", "Widget library", "হোমকে নিজের মতো সাজান"],
+    ["store", "plus", "উইজেট লাইব্রেরি", "ড্যাশবোর্ড নিজের মতো সাজান"],
     ["notes", "book", "নোটস", "মনে রাখার ব্যক্তিগত স্পেস"],
     ["settings", "settings", "সেটিংস", "Backup, restore ও activity log"],
   ];
@@ -447,7 +653,7 @@ function agent() {
 function learn() {
   return (
     head("বোঝা থেকে শেখার শুরু।", "LEARNING STUDIO") +
-    `<div class="grid"><section class="card"><div class="card-head"><span class="card-title">Quadratic graph · y = ax² + bx + c</span></div><p class="section-desc">a, b, c বদলে গ্রাফ দেখুন। এটি deterministic গণনা—AI-generated answer নয়।</p><div class="row">${["a", "b", "c"].map((x, i) => `<label class="field" style="flex:1">${x}<input id="coef_${x}" type="number" min="-10" max="10" step="0.5" value="${i === 0 ? 1 : 0}" oninput="drawGraph()"></label>`).join("")}</div><svg id="mathGraph" class="graph" viewBox="0 0 480 250" role="img" aria-label="Quadratic function plot"></svg><p class="section-desc" id="graphExplanation"></p></section><section class="card"><h3>ধারণাটি বুঝি</h3><p class="section-desc">x-এর প্রতিটি মানে y হিসাব করে একটি বিন্দু পাওয়া যায়। y = x² হলে x = −২ ও x = ২, উভয় ক্ষেত্রেই y = ৪। তাই গ্রাফটি y অক্ষের দুই পাশে সমমিত। a ঋণাত্মক হলে parabola নিচের দিকে খোলে।</p><div class="notice">এটি সীমিত, হাতে লেখা learning content। Curriculum-wide tutor বা high-stakes grading নয়। পূর্ণ agent ব্যবহার করলে সংখ্যাগত ফল স্বাধীনভাবে যাচাই করুন।</div><button class="btn" style="margin-top:15px" onclick="go('agent')">এজেন্টের সাহায্য নিন ↗</button></section></div><section class="card" style="margin-top:20px"><h3>নিজে চেষ্টা করুন</h3><form class="formgrid" onsubmit="event.preventDefault();checkQuiz(this)">${field("১. y = x²; x = ৩ হলে y কত?", "q1", "", "number")}${field("২. y = 2x + 1 রেখাটির slope কত?", "q2", "", "number")}${field("৩. y = x²-এর vertex-এর x coordinate কত?", "q3", "", "number")}<button class="btn primary">উত্তর যাচাই করুন</button></form><div id="quizResult"></div><p class="section-desc" style="margin-top:14px">আগের অনুশীলন: ${byKind("quiz").length}টি।</p></section>`
+    `<div class="grid"><section class="card"><div class="card-head"><span class="card-title">Quadratic graph · y = ax² + bx + c</span></div><p class="section-desc">a, b, c বদলে গ্রাফ দেখুন। এটি deterministic গণনা—AI-generated answer নয়।</p><div class="row">${["a", "b", "c"].map((x, i) => `<label class="field" style="flex:1">${x}<input id="coef_${x}" type="number" min="-10" max="10" step="any" value="${i === 0 ? 1 : 0}" oninput="drawGraph()"></label>`).join("")}</div><svg id="mathGraph" class="graph" viewBox="0 0 480 250" role="img" aria-label="Quadratic function plot"></svg><p class="section-desc" id="graphExplanation" role="status"></p></section><section class="card"><h3>ধারণাটি বুঝি</h3><p class="section-desc">x-এর প্রতিটি মানে y হিসাব করে একটি বিন্দু পাওয়া যায়। y = x² হলে x = −২ ও x = ২, উভয় ক্ষেত্রেই y = ৪। তাই গ্রাফটি y অক্ষের দুই পাশে সমমিত। a ঋণাত্মক হলে parabola নিচের দিকে খোলে।</p><div class="notice">এটি সীমিত, হাতে লেখা learning content। Curriculum-wide tutor বা high-stakes grading নয়। পূর্ণ agent ব্যবহার করলে সংখ্যাগত ফল স্বাধীনভাবে যাচাই করুন।</div><button class="btn" style="margin-top:15px" onclick="go('agent')">এজেন্টের সাহায্য নিন ↗</button></section></div><section class="card" style="margin-top:20px"><h3>নিজে চেষ্টা করুন</h3><form class="formgrid" onsubmit="event.preventDefault();checkQuiz(this)">${field("১. y = x²; x = ৩ হলে y কত?", "q1", "", "number")}${field("২. y = 2x + 1 রেখাটির slope কত?", "q2", "", "number")}${field("৩. y = x²-এর vertex-এর x coordinate কত?", "q3", "", "number")}<button class="btn primary">উত্তর যাচাই করুন</button></form><div id="quizResult"></div><p class="section-desc" style="margin-top:14px">আগের অনুশীলন: ${byKind("quiz").length}টি।</p></section>`
   );
 }
 function drawGraph() {
@@ -455,9 +661,27 @@ function drawGraph() {
   const a = Number($("coef_a").value),
     b = Number($("coef_b").value),
     c = Number($("coef_c").value);
-  if (![a, b, c].every((v) => Number.isFinite(v) && Math.abs(v) <= 10)) {
+  const inputs = ["a", "b", "c"].map((x) => $("coef_" + x));
+  const valid = inputs.every(
+    (input) =>
+      input.value.trim() !== "" &&
+      Number.isFinite(Number(input.value)) &&
+      Math.abs(Number(input.value)) <= 10,
+  );
+  inputs.forEach((input) =>
+    input.setAttribute(
+      "aria-invalid",
+      String(
+        !input.value.trim() ||
+          !Number.isFinite(Number(input.value)) ||
+          Math.abs(Number(input.value)) > 10,
+      ),
+    ),
+  );
+  if (!valid) {
+    $("mathGraph").replaceChildren();
     $("graphExplanation").textContent =
-      "প্রতিটি coefficient −১০ থেকে ১০-এর মধ্যে দিন।";
+      "a, b, c-এর প্রতিটি মান −১০ থেকে ১০-এর মধ্যে সংখ্যায় লিখুন।";
     return;
   }
   let lines = "";
@@ -475,10 +699,13 @@ function drawGraph() {
   $("graphExplanation").textContent =
     a === 0
       ? `এটি linear/constant function। y(2) = ${b * 2 + c}`
-      : `${a > 0 ? "উপরের" : "নিচের"} দিকে খোলা parabola। Vertex-এর x = ${(-b / (2 * a)).toFixed(2)}। y(2) = ${4 * a + 2 * b + c}।`;
+      : `${a > 0 ? "উপরের" : "নিচের"} দিকে খোলা parabola। Vertex-এর x ≈ ${(-b / (2 * a)).toFixed(2)}। y(2) = ${4 * a + 2 * b + c}।`;
 }
 async function checkQuiz(f) {
-  const got = [f.q1.value, f.q2.value, f.q3.value].map(Number),
+  const values = [f.q1.value, f.q2.value, f.q3.value];
+  if (values.some((v) => !v.trim() || !Number.isFinite(Number(v))))
+    return toast("তিনটি প্রশ্নের উত্তর সংখ্যায় লিখুন।");
+  const got = values.map(Number),
     correct = [9, 2, 0],
     score = got.filter((v, i) => v === correct[i]).length;
   await D.create("quiz", { title: "Algebra practice", correct: score });
@@ -711,7 +938,7 @@ async function importMini(input) {
 function settings() {
   return (
     head("নিয়ন্ত্রণ থাকুক আপনার হাতে।", "SETTINGS & DATA") +
-    `<section class="card"><h3>আপনার local data</h3><p class="section-desc">Shared records এই app origin-এর IndexedDB-তে থাকে। এটি encrypted vault বা cloud sync নয়। Device/browser data মুছে গেলে backup ছাড়া ফিরে পাওয়া যাবে না। Mini-app storage আলাদা; নিচের backup-এ অন্তর্ভুক্ত নয়।</p><div class="row"><button class="btn primary" onclick="exportBackup()">JSON backup</button><button class="btn" onclick="document.getElementById('restoreFile').click()">Restore backup</button><button class="btn" onclick="document.body.classList.toggle('dark');localStorage.setItem('chhayapoth.theme',document.body.classList.contains('dark')?'dark':'light')">Light / Dark</button></div><input hidden type="file" id="restoreFile" accept=".json" onchange="restoreBackup(this)"><h3>AI provider ও tool permissions</h3><a class="btn" href="./agent.html">Native workspace settings ↗</a><p class="section-desc">Credentials কখনো chat বা source code-এ রাখবেন না। Free model availability guarantee নয়।</p><h3>Activity log · recent 100</h3><div id="auditLog"></div></section>`
+    `<section class="card"><h3>আপনার local data</h3><p class="section-desc">Shared records এই app origin-এর IndexedDB-তে থাকে। এটি encrypted vault বা cloud sync নয়। Device/browser data মুছে গেলে backup ছাড়া ফিরে পাওয়া যাবে না। Mini-app storage আলাদা; নিচের backup-এ অন্তর্ভুক্ত নয়।</p><div class="row"><button class="btn primary" onclick="exportBackup()">JSON backup</button><button class="btn" onclick="document.getElementById('restoreFile').click()">Restore backup</button><button class="btn" data-theme-toggle aria-pressed="${document.body.classList.contains("dark")}" onclick="toggleTheme()">Light / Dark</button></div><input hidden type="file" id="restoreFile" accept=".json" onchange="restoreBackup(this)"><h3>AI provider ও tool permissions</h3><a class="btn" href="./agent.html">Native workspace settings ↗</a><p class="section-desc">Credentials কখনো chat বা source code-এ রাখবেন না। Free model availability guarantee নয়।</p><h3>Activity log · recent 100</h3><div id="auditLog"></div></section>`
   );
 }
 async function loadAudit() {
@@ -766,25 +993,78 @@ async function restoreBackup(input) {
   }
 }
 function openModal(html) {
+  if ($("modal").classList.contains("hidden"))
+    modalTrigger = document.activeElement;
   $("modal").innerHTML =
-    `<section class="modal-card" role="dialog" aria-modal="true" aria-label="Chhayapoth form"><div style="text-align:right"><button class="btn" onclick="closeModal()">বন্ধ ×</button></div>${html}</section>`;
+    `<section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="dialogTitle"><div class="modal-toolbar"><span class="sub">ছায়াপথ · আপনার স্পেস</span><button class="iconbtn" onclick="closeModal()" aria-label="ফর্ম বন্ধ করুন">×</button></div>${html}</section>`;
+  const title = $("modal").querySelector("h2");
+  if (title) {
+    title.id = "dialogTitle";
+    title.tabIndex = -1;
+  } else
+    $("modal")
+      .querySelector("[role=dialog]")
+      .setAttribute("aria-label", "ছায়াপথ");
   $("modal").classList.remove("hidden");
-  $("modal").querySelector("input,button")?.focus();
+  document.body.classList.add("modal-open");
+  document.querySelector(".app").inert = true;
+  $("mobileNav").inert = true;
+  $("skipLink").inert = true;
+  (title || $("modal").querySelector("button"))?.focus({ preventScroll: true });
 }
 function closeModal() {
+  if ($("modal").classList.contains("hidden")) return;
   if (miniSession) {
     miniSession.stop().catch((e) => toast(e.message));
     miniSession = null;
   }
   $("modal").classList.add("hidden");
-  $("modal").innerHTML = "";
+  $("modal").replaceChildren();
+  document.body.classList.remove("modal-open");
+  document.querySelector(".app").inert = false;
+  $("mobileNav").inert = false;
+  $("skipLink").inert = false;
+  if (modalTrigger?.isConnected) modalTrigger.focus({ preventScroll: true });
+  else $("content").querySelector("h1")?.focus({ preventScroll: true });
+  modalTrigger = null;
 }
 document.addEventListener("keydown", (e) => {
-  if (e.key === "Escape") closeModal();
+  if ($("modal").classList.contains("hidden")) return;
+  if (e.key === "Escape") {
+    e.preventDefault();
+    closeModal();
+    return;
+  }
+  if (e.key !== "Tab") return;
+  const items = [
+    ...$("modal").querySelectorAll(
+      'button:not([disabled]),a[href],input:not([disabled]),select:not([disabled]),textarea:not([disabled]),iframe,[tabindex="0"]',
+    ),
+  ].filter((el) => el.getClientRects().length);
+  if (!items.length) return;
+  const first = items[0],
+    last = items.at(-1),
+    active = document.activeElement;
+  if (e.shiftKey && (active === first || !items.includes(active))) {
+    e.preventDefault();
+    last.focus();
+  } else if (!e.shiftKey && (active === last || !items.includes(active))) {
+    e.preventDefault();
+    first.focus();
+  }
 });
 $("modal").addEventListener("click", (e) => {
   if (e.target === $("modal")) closeModal();
 });
+function toggleTheme() {
+  const dark = document.body.classList.toggle("dark");
+  try {
+    localStorage.setItem("chhayapoth.theme", dark ? "dark" : "light");
+  } catch {}
+  document
+    .querySelectorAll("[data-theme-toggle]")
+    .forEach((b) => b.setAttribute("aria-pressed", String(dark)));
+}
 // Nearby is wired only to the actual native transport. Web never simulates peers.
 let nearbyReady = false,
   nearbyStarting = null,
@@ -1056,16 +1336,41 @@ async function processPayload(event) {
   }
   if (page === "messages") await render();
 }
-// Changes made from agent.html share the same IndexedDB origin; reload on focus.
-window.addEventListener("focus", () => render().catch((e) => toast(e.message)));
-window.addEventListener("online", () => {
-  $("networkState").textContent = "Online · local records retained";
-});
-window.addEventListener("offline", () => {
-  $("networkState").textContent = "Offline · local utilities available";
-});
-if (localStorage.getItem("chhayapoth.theme") === "dark")
-  document.body.classList.add("dark");
+// Refresh externally changed records without destroying an open form or typed input.
+async function refreshExternalRecords() {
+  if (
+    !$("modal").classList.contains("hidden") ||
+    document.activeElement?.matches("input,textarea,select")
+  )
+    return;
+  const latest = await D.list();
+  if (JSON.stringify(latest) !== JSON.stringify(rows)) await render();
+}
+window.addEventListener("focus", () =>
+  refreshExternalRecords().catch((e) => toast(e.message)),
+);
+function updateNetworkLabel() {
+  $("networkState").textContent = navigator.onLine
+    ? "সংযোগ আছে · রেকর্ড ডিভাইসে"
+    : "অফলাইন · রেকর্ড ডিভাইসে";
+}
+window.addEventListener("online", updateNetworkLabel);
+window.addEventListener("offline", updateNetworkLabel);
+updateNetworkLabel();
+try {
+  if (localStorage.getItem("chhayapoth.theme") === "dark")
+    document.body.classList.add("dark");
+} catch {}
+document
+  .querySelectorAll("[data-theme-toggle]")
+  .forEach((b) =>
+    b.setAttribute(
+      "aria-pressed",
+      String(document.body.classList.contains("dark")),
+    ),
+  );
 render().catch((e) => {
-  $("content").textContent = "Storage unavailable: " + e.message;
+  $("content").innerHTML =
+    '<section class="card storage-error"><h1 tabindex="-1">রেকর্ড খোলা যায়নি</h1><p id="storageError"></p><button class="btn primary" onclick="location.reload()">আবার চেষ্টা করুন</button></section>';
+  $("storageError").textContent = e.message;
 });
