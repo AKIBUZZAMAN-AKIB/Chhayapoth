@@ -47,4 +47,16 @@
 
 ## পরবর্তী dashboard UI revision
 
-ব্যবহারকারী Advanced dashboard নির্বাচন করার পর `www`-এ product UI update হয়েছে। Exact BigInt totals, মাসভিত্তিক chart/table, combined ledger filters, local search, route persistence ও modal focus ঠিক করা হয়েছে। Native core অপরিবর্তিত। 369 source tests, 30 populated accessibility scans, 70 dashboard layout checks এবং offline reload test সফল। বিস্তারিত: [UI/UX review](UI-UX-REVIEW.bn.md)। এই revision পুরোনো `test-0.1.0.1` APK-তে নেই; নতুন native APK/device test দাবি করা হচ্ছে না।
+ব্যবহারকারী Advanced dashboard নির্বাচন করার পর `www`-এ product UI update হয়েছে। Exact BigInt totals, মাসভিত্তিক chart/table, combined ledger filters, local search, route persistence ও modal focus ঠিক করা হয়েছে। Native core অপরিবর্তিত। 369 source tests, 30 populated accessibility scans, 70 dashboard layout checks এবং offline reload test সফল। বিস্তারিত: [UI/UX review](UI-UX-REVIEW.bn.md)। এই revision পুরোনো `test-0.1.0.1` APK-তে নেই; নতুন `test-0.1.1.1` APK-তে অন্তর্ভুক্ত এবং bundle যাচাইকৃত। Real-device test এখনো হয়নি।
+
+## সর্বশেষ release: 0.1.1-alpha / versionCode 2
+
+- Release: https://github.com/AKIBUZZAMAN-AKIB/Chhayapoth/releases/tag/test-0.1.1.1
+- Build commit: `e15736f8d5e4cc2d499d491a78572ba982cb138d`
+- Android build: https://github.com/AKIBUZZAMAN-AKIB/Chhayapoth/actions/runs/41381204561 — সফল।
+- Verify (Rust + web + audit): https://github.com/AKIBUZZAMAN-AKIB/Chhayapoth/actions/runs/41381204607 — সফল।
+- পূর্বের Web CI failure ছিল ৭টি moderate dependency vulnerability-এর audit gate। Vitest patch, patched glob/minimatch dependency chain ও fast-uri override দিয়ে সমাধান হয়েছে; audit gate অক্ষুণ্ণ। Vite 7.3.7 pin npm optional-peer resolution loop এড়ায়; clean npm 10 install/ci ও tests সফল। Audit-এ বর্তমানে ০টি পরিচিত vulnerability।
+- Rust-এর unused mut/variable warning দূর হয়েছে; ANSI output warning gate এড়িয়ে যেতে পারে না। FFI identity check সফল।
+- APK SHA-256: `e93d37c28c0a78a0476d932119b03b3c7727d15131c8abb715e4815da914f2c7`।
+- নতুন UI JS/CSS/font/license APK-র ভিতরে local source-এর সঙ্গে SHA-256 মিলেছে; manifest version যাচাইকৃত।
+- Test key নতুন এবং অস্থায়ী। আগের app-এর ওপর update install নাও হতে পারে। Uninstall-এর আগে backup/export file যাচাই করুন; local data হারাতে পারে।

@@ -4,7 +4,7 @@
 
 ব্যবহারকারী code এবং content/data—দুটির নির্ভুলতা চেয়েছেন। তিনটি design direction থেকে **Advanced dashboard** বেছে নিয়েছেন। Product UI-র পরিবর্তন `www/index.html` এবং `www/chhayapoth/`-এ সীমাবদ্ধ; native engine, provider implementation, permission policy, sandbox এবং shared-domain schema পরিবর্তন করা হয়নি। পরীক্ষার জন্য `e2e/dashboard.cjs` যোগ করা হয়েছে।
 
-এটি production-oriented UI revision; সম্পূর্ণ product-এর production certification নয়। আগের `test-0.1.0.1` APK এই revision-এর আগে build হয়েছিল। এই UI revision-এর নতুন signed APK দাবি করা হচ্ছে না।
+এটি production-oriented UI revision; সম্পূর্ণ product-এর production certification নয়। আগের `test-0.1.0.1` APK এই revision-এর আগে build হয়েছিল। পরবর্তী 0.1.1-alpha release-এ এই UI build করা হয়েছে: https://github.com/AKIBUZZAMAN-AKIB/Chhayapoth/releases/tag/test-0.1.1.1 । Manifest versionCode 2 এবং APK-র dashboard JS/CSS/font স্থানীয় source-এর সঙ্গে মিলিয়ে যাচাই হয়েছে। Real-device validation দাবি করা হচ্ছে না।
 
 ## Research থেকে design সিদ্ধান্ত
 

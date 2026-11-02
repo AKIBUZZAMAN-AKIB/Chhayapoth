@@ -79,4 +79,4 @@ The APK/AAB passed pipeline signing verification and downloaded SHA-256 checks. 
 
 The product shell now uses a data-first dashboard with exact minor-unit totals, month-backed charts and accessible tables, combined ledger filters, local escaped record search, hash navigation, and corrected modal focus behavior. Bangla typography is bundled locally. Native engine/provider/permission/sandbox implementations are unchanged. See [UI/UX research and verification](docs/chhayapoth/UI-UX-REVIEW.bn.md).
 
-This UI revision is newer than the APK in `test-0.1.0.1`; that earlier release does not contain these changes.
+The dashboard UI is now included in the [0.1.1 test-signed alpha](https://github.com/AKIBUZZAMAN-AKIB/Chhayapoth/releases/tag/test-0.1.1.1). Android manifest versionCode 2 and packaged UI assets were verified. The earlier `test-0.1.0.1` release does not contain these changes. Both use test-only signing, not a stable production identity.

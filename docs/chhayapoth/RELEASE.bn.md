@@ -51,3 +51,6 @@ Local build-এ JDK21/SDK36 এবং environment-based signing credentials দ�
 ## যা আলাদা পরীক্ষা লাগবে
 
 দুই physical device-এ Nearby pairing/send/ack/reconnect; OS reminder delivery; native agent provider routing ও domain tools; iOS build/signing; launcher widgets; security/dependency audit এবং app-store policy review।
+
+
+সর্বশেষ dashboard release: https://github.com/AKIBUZZAMAN-AKIB/Chhayapoth/releases/tag/test-0.1.1.1 । versionName 0.1.1-alpha, versionCode 2; APK/AAB signature/checksum এবং packaged UI যাচাই সফল। Test-only signing; real-device validation ও stable update identity বাকি।
