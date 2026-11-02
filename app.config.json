@@ -3,9 +3,9 @@
   "app": {
     "name": "Chhayapoth",
     "id": "dev.chhayapoth.app",
-    "versionName": "0.1.0-alpha",
-    "versionCode": 1,
-    "buildNumber": "1",
+    "versionName": "0.1.1-alpha",
+    "versionCode": 2,
+    "buildNumber": "2",
     "description": "Bangla-first personal workspace for learning and everyday organisation",
     "defaultLanguage": "bn",
     "urlScheme": "chhayapoth"

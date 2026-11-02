@@ -52,7 +52,8 @@ jobs:
 
       - name: Build must be warning-free
         run: |
-          cargo check --lib 2>&1 | tee /tmp/check.log
+          set -euo pipefail
+          CARGO_TERM_COLOR=never cargo check --lib 2>&1 | tee /tmp/check.log
           if grep -qE '^warning' /tmp/check.log; then
             echo "::error::cargo check emitted warnings"
             exit 1
